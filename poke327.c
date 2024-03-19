@@ -42,8 +42,8 @@ typedef int16_t pair_t[num_dims];
 #define ADD_TRAINER_PROB 60
 
 #define MOUNTAIN_SYMBOL       '%'
-#define BOULDER_SYMBOL        '0'
-#define TREE_SYMBOL           '4'
+#define BOULDER_SYMBOL        '%'
+#define TREE_SYMBOL           '^'
 #define FOREST_SYMBOL         '^'
 #define GATE_SYMBOL           '#'
 #define PATH_SYMBOL           '#'
@@ -53,6 +53,32 @@ typedef int16_t pair_t[num_dims];
 #define SHORT_GRASS_SYMBOL    '.'
 #define WATER_SYMBOL          '~'
 #define ERROR_SYMBOL          '&'
+
+// Colors for output
+#define BBLK "\033[30;1m"
+#define BRED "\033[31;1m"
+#define BGRN "\033[32;1m"
+#define BYLW "\033[33;1m"
+#define BBLU "\033[34;1m"
+#define BMAG "\033[35;1m"
+#define BCYN "\033[36;1m"
+#define BWHT "\033[37;1m"
+#define BLK "\e[0;30m"
+#define RED "\e[0;31m"
+#define GRN "\e[0;32m"
+#define YEL "\e[0;33m"
+#define BLU "\e[0;34m"
+#define MAG "\e[0;35m"
+#define CYN "\e[0;36m"
+#define WHT "\e[0;37m"
+#define BLKB "\e[40m"
+#define REDB "\e[41m"
+#define GRNB "\e[42m"
+#define YELB "\e[43m"
+#define BLUB "\e[44m"
+#define MAGB "\e[45m"
+#define CYNB "\e[46m"
+#define WHTB "\e[47m"
 
 #define DIJKSTRA_PATH_MAX (INT_MAX / 2)
 
@@ -1483,43 +1509,56 @@ static void print_map()
       } else {
         switch (world.cur_map->map[y][x]) {
         case ter_boulder:
+          printf("%s%s", BLK, BLKB);
           putchar(BOULDER_SYMBOL);
           break;
         case ter_mountain:
+          printf("%s%s", BLK, BLKB);
           putchar(MOUNTAIN_SYMBOL);
           break;
         case ter_tree:
+          printf("%s%s", BLK, BLKB);
           putchar(TREE_SYMBOL);
           break;
         case ter_forest:
+          printf("%s%s", BGRN, GRNB);
           putchar(FOREST_SYMBOL);
           break;
         case ter_path:
+          printf("%s", BBLK);
           putchar(PATH_SYMBOL);
           break;
         case ter_gate:
+          printf("%s", BBLK);
           putchar(GATE_SYMBOL);
           break;
         case ter_mart:
+          printf("%s%s", BCYN, CYNB);
           putchar(POKEMART_SYMBOL);
           break;
         case ter_center:
+          printf("%s%s", BRED, REDB);
           putchar(POKEMON_CENTER_SYMBOL);
           break;
         case ter_grass:
+          printf("%s", BGRN);
           putchar(TALL_GRASS_SYMBOL);
           break;
         case ter_clearing:
+          printf("%s", GRN);
           putchar(SHORT_GRASS_SYMBOL);
           break;
         case ter_water:
+          printf("%s%s", BBLU, BLUB);
           putchar(WATER_SYMBOL);
           break;
         default:
+          printf("%s", BYLW);
           putchar(ERROR_SYMBOL);
           default_reached = 1;
           break;
         }
+        printf("\033[0m");
       }
     }
     putchar('\n');
