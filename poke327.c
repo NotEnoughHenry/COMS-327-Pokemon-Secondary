@@ -709,6 +709,7 @@ void new_char_other()
   world.cur_map->cmap[pos[dim_y]][pos[dim_x]] = c;
 }
 
+int trainer_count;
 void place_characters()
 {
   int num_trainers = 3;
@@ -737,6 +738,7 @@ void place_characters()
     }
   } while (++num_trainers < MIN_TRAINERS ||
            ((rand() % 100) < ADD_TRAINER_PROB));
+  trainer_count = num_trainers;
 }
 
 int32_t cmp_char_turns(const void *key, const void *with)
@@ -2219,10 +2221,10 @@ bool handle_movement_input(character_t *c, pair_t d, int i)
   return false;
 }
 
-void display_info_menu(const char *t, const char **d)
+void display_info_menu(char *t, char **d)
 {
   const int menu_x = 20, menu_y = 2;
-  const int menu_height = 17, menu_width = 40;
+  const int menu_height = 10, menu_width = 40;
   const char t_border = '-',  w_border = '|', blank = ' ';
 
   for (int i = menu_y; i < menu_y + menu_height; i++) {
@@ -2252,6 +2254,7 @@ void display_info_menu(const char *t, const char **d)
     if (curser_y + i + 2 > menu_y + menu_height - 3)  {
       move(curser_y + i + 2, curser_x);
       printw("...");
+      move(MAP_Y - 1, MAP_X);
       break;
     }
     move(curser_y + i + 2, curser_x);
@@ -2261,6 +2264,7 @@ void display_info_menu(const char *t, const char **d)
   move(MAP_Y - 1, MAP_X);
 }
 
+int trainer_menu_buffer = 0;
 int handle_menu_input(character_t *c, int i)
 {
   map_t *m = world.cur_map;
@@ -2271,34 +2275,71 @@ int handle_menu_input(character_t *c, int i)
 
   if (i == '>') {
     if (current_pos == ter_mart) {
-      const char *title = "Welcome to the Pokemart!";
-      const char *description[] = {"Coming Soon!", NULL};
+      char *title = "Welcome to the Pokemart!";
+      char *description[] = {"Coming Soon!", NULL};
       display_info_menu(title, description);
       menu_open = true;
       menu_type = 'P';
     } else if (current_pos == ter_center) {
-      const char *title = "Welcome to the Pokecenter!";
-      const char *description[] = {"Coming Soon!", NULL};
+      char *title = "Welcome to the Pokecenter!";
+      char *description[] = {"Coming Soon!", NULL};
       display_info_menu(title, description);
       menu_open = true;
       menu_type = 'P';
     }
   } else if (i == 't') {
-    const char *title = "Trainer List.";
-    const char *description[] = {"Coming Soon!", "Coming Soon!", "Coming Soon!", "Coming Soon!", "Coming Soon!", "Coming Soon!", "Coming Soon!", "Coming Soon!", NULL};
+    char *title = "Trainer List.";
+    char *description[trainer_count + 1];
+    int index = 0;
+    size_t DESCRIPTION_SIZE = 45;
+    for (int y = 0; y < MAP_Y; y++) {
+      for (int x = 0; x < MAP_X; x++) {
+        if (m->cmap[y][x] != NULL && m->cmap[y][x]->symbol != PC_SYMBOL) {
+          description[index] = malloc(DESCRIPTION_SIZE * sizeof(char));
+          if (description[index] == NULL) {
+            exit(EXIT_FAILURE);
+          }
+          int dist_y = c->pos[dim_y] - y;
+          int dist_x = c->pos[dim_x] - x;
+          char *north_south = dist_y < 0 ? "south" : "north";
+          char *east_west = dist_x < 0 ? "west" : "east";
+          snprintf(description[index], DESCRIPTION_SIZE, "%02d  |  %c  %d %s, %d %s", (index), m->cmap[y][x]->symbol, abs(dist_y), north_south, abs(dist_x), east_west);
+          index++;
+        }
+      }
+    }
+    description[index] = NULL;
+    for (int k = 0; k < trainer_menu_buffer; k++) {
+      for (int j = 0; j < trainer_count; j++) {
+        description[j] = description[j+1];
+      }
+    }
 
     display_info_menu(title, description);
     menu_open = true;
     menu_type = 'T';
   }
 
+  bool update_trainer_menu = false;
   if (menu_open) {
   int input;
     do {
       input = getch();
       if (input == 'Q') return input;
+      if (input == KEY_DOWN) {
+        update_trainer_menu = true;
+        trainer_menu_buffer = trainer_menu_buffer > trainer_count - 2 ? trainer_menu_buffer : trainer_menu_buffer + 1;
+        break;
+      } else if (input == KEY_UP) {
+        update_trainer_menu = true;
+        trainer_menu_buffer = trainer_menu_buffer == 0 ? trainer_menu_buffer : trainer_menu_buffer - 1;
+        break;
+      }
     } while ((menu_type == 'T' && input != '\x1B') || (menu_type == 'P' && input != '<'));
     print_map();
+  }
+  if (update_trainer_menu) {
+    i = handle_menu_input(c, i);
   }
   return i;
 }
@@ -2321,6 +2362,7 @@ void game_loop()
       bool moved = false;
       while (!moved && input != 'Q') 
       {
+        trainer_menu_buffer = 0;
         input = getch();
         if (input == 'Q') break;
 
