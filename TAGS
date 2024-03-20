@@ -42,7 +42,7 @@ typedef struct heap 13,153
   void (*datum_delete)datum_delete17,269
 } heap_t;18,301
 
-poke327.c,5070
+poke327.c,5130
 #define malloc(13,202
 typedef struct path19,346
   heap_node_t *hn;hn21,368
@@ -90,129 +90,131 @@ typedef int16_t pair_t[pair_t34,509
 #define mapxy(72,1376
 #define heightpair(73,1411
 #define heightxy(74,1474
-typedef enum __attribute__((__packed__)) terrain_type76,1516
-  ter_boulder,78,1572
-  ter_tree,79,1587
-  ter_path,80,1599
-  ter_mart,81,1611
-  ter_center,82,1623
-  ter_grass,83,1637
-  ter_clearing,84,1650
-  ter_mountain,85,1666
-  ter_forest,86,1682
-  ter_water,87,1696
-  ter_gate,88,1709
-  num_terrain_types,89,1721
-  ter_debug90,1742
-} terrain_type_t;91,1754
-typedef enum __attribute__((__packed__)) movement_type93,1773
-  move_hiker,95,1830
-  move_rival,96,1844
-  move_pace,97,1858
-  move_wander,98,1871
-  move_sentry,99,1886
-  move_explore,100,1901
-  move_swim,101,1917
-  move_pc,102,1930
-  num_movement_types103,1941
-} movement_type_t;104,1962
-typedef enum __attribute__((__packed__)) character_type106,1982
-  char_pc,108,2040
-  char_hiker,109,2051
-  char_rival,110,2065
-  char_swimmer,111,2079
-  char_other,112,2095
-  num_character_types113,2109
-} character_type_t;114,2131
-typedef struct pc116,2152
-} pc_t;118,2172
-typedef struct npc120,2181
-  character_type_t ctype;122,2202
-  movement_type_t mtype;123,2228
-  pair_t dir;124,2253
-} npc_t;125,2267
-typedef struct character127,2277
-  npc_t *npc;npc129,2304
-  pc_t *pc;pc130,2318
-  pair_t pos;131,2330
-  char symbol;132,2344
-  int next_turn;133,2359
-  int seq_num;134,2376
-} character_t;135,2391
-typedef struct map137,2407
-  terrain_type_t map[map139,2428
-  uint8_t height[height140,2464
-  character_t *cmap[cmap141,2496
-  heap_t turn;142,2531
-  int8_t n,143,2546
-  int8_t n, s,143,2546
-  int8_t n, s, e,143,2546
-  int8_t n, s, e, w;143,2546
-} map_t;144,2567
-typedef struct queue_node146,2577
-  int x,148,2605
-  int x, y;148,2605
-  struct queue_node *next;next149,2617
-} queue_node_t;150,2644
-typedef struct world152,2661
-  map_t *world[world154,2684
-  pair_t cur_idx;155,2724
-  map_t *cur_map;cur_map156,2742
-  int hiker_dist[hiker_dist159,2865
-  int rival_dist[rival_dist160,2897
-  character_t pc;161,2929
-  int char_seq_num;162,2947
-} world_t;163,2967
-world_t world;167,3134
-static pair_t all_dirs[all_dirs169,3150
-#define IM 181,3343
-int32_t move_cost[move_cost186,3653
-#undef IM194,4046
-#define rand_dir(196,4057
-#define is_adjacent(203,4222
-uint32_t can_see(215,4857
-static void move_hiker_func(314,7296
-static void move_rival_func(345,8274
-static void move_pacer_func(376,9251
-static void move_wanderer_func(403,10086
-static void move_sentry_func(428,10992
-static void move_explorer_func(434,11117
-static void move_swimmer_func(463,12243
-static void move_pc_func(552,15074
-void rand_pos(578,15758
-void new_hiker(584,15875
-void new_rival(610,16502
-void new_swimmer(637,17188
-void new_char_other(662,17787
-void place_characters(705,18765
-int32_t cmp_char_turns(735,19317
-void delete_character(745,19673
-void init_pc(758,19825
-static int32_t path_cmp(781,20278
-static int32_t edge_penalty(786,20399
-static void dijkstra_path(791,20525
-static int build_paths(911,24590
-static int gaussian[gaussian1020,26322
-static int smooth_height(1027,26468
-static void find_building_location(1208,30602
-static int place_pokemart(1241,31965
-static int place_center(1255,32241
-static terrain_type_t border_type(1271,32678
-static int map_terrain(1332,33672
-static int place_boulders(1553,38246
-static int place_trees(1573,38620
-static int new_map(1597,39179
-static void print_map(1699,41346
-void init_world(1768,42931
-void delete_world(1775,43057
-#define ter_cost(1792,43299
-static int32_t hiker_cmp(1794,43353
-static int32_t rival_cmp(1802,43648
-void pathfind(1810,43943
-void print_hiker_dist(2063,54190
-void print_rival_dist(2084,54508
-void print_character(2106,54866
-bool handle_movement_input(2143,56381
-void handle_menu_input(2216,58911
-void game_loop(2221,58944
-int main(2258,59774
+bool menu_open 76,1516
+typedef enum __attribute__((__packed__)) terrain_type78,1541
+  ter_boulder,80,1597
+  ter_tree,81,1612
+  ter_path,82,1624
+  ter_mart,83,1636
+  ter_center,84,1648
+  ter_grass,85,1662
+  ter_clearing,86,1675
+  ter_mountain,87,1691
+  ter_forest,88,1707
+  ter_water,89,1721
+  ter_gate,90,1734
+  num_terrain_types,91,1746
+  ter_debug92,1767
+} terrain_type_t;93,1779
+typedef enum __attribute__((__packed__)) movement_type95,1798
+  move_hiker,97,1855
+  move_rival,98,1869
+  move_pace,99,1883
+  move_wander,100,1896
+  move_sentry,101,1911
+  move_explore,102,1926
+  move_swim,103,1942
+  move_pc,104,1955
+  num_movement_types105,1966
+} movement_type_t;106,1987
+typedef enum __attribute__((__packed__)) character_type108,2007
+  char_pc,110,2065
+  char_hiker,111,2076
+  char_rival,112,2090
+  char_swimmer,113,2104
+  char_other,114,2120
+  num_character_types115,2134
+} character_type_t;116,2156
+typedef struct pc118,2177
+} pc_t;120,2197
+typedef struct npc122,2206
+  character_type_t ctype;124,2227
+  movement_type_t mtype;125,2253
+  pair_t dir;126,2278
+} npc_t;127,2292
+typedef struct character129,2302
+  npc_t *npc;npc131,2329
+  pc_t *pc;pc132,2343
+  pair_t pos;133,2355
+  char symbol;134,2369
+  int next_turn;135,2384
+  int seq_num;136,2401
+} character_t;137,2416
+typedef struct map139,2432
+  terrain_type_t map[map141,2453
+  uint8_t height[height142,2489
+  character_t *cmap[cmap143,2521
+  heap_t turn;144,2556
+  int8_t n,145,2571
+  int8_t n, s,145,2571
+  int8_t n, s, e,145,2571
+  int8_t n, s, e, w;145,2571
+} map_t;146,2592
+typedef struct queue_node148,2602
+  int x,150,2630
+  int x, y;150,2630
+  struct queue_node *next;next151,2642
+} queue_node_t;152,2669
+typedef struct world154,2686
+  map_t *world[world156,2709
+  pair_t cur_idx;157,2749
+  map_t *cur_map;cur_map158,2767
+  int hiker_dist[hiker_dist161,2890
+  int rival_dist[rival_dist162,2922
+  character_t pc;163,2954
+  int char_seq_num;164,2972
+} world_t;165,2992
+world_t world;169,3159
+static pair_t all_dirs[all_dirs171,3175
+#define IM 183,3368
+int32_t move_cost[move_cost188,3678
+#undef IM196,4071
+#define rand_dir(198,4082
+#define is_adjacent(205,4247
+uint32_t can_see(217,4882
+static void move_hiker_func(316,7321
+static void move_rival_func(347,8299
+static void move_pacer_func(378,9276
+static void move_wanderer_func(405,10111
+static void move_sentry_func(430,11017
+static void move_explorer_func(436,11142
+static void move_swimmer_func(465,12268
+static void move_pc_func(554,15099
+void rand_pos(580,15783
+void new_hiker(586,15900
+void new_rival(612,16527
+void new_swimmer(639,17213
+void new_char_other(664,17812
+void place_characters(707,18790
+int32_t cmp_char_turns(737,19342
+void delete_character(747,19698
+void init_pc(760,19850
+static int32_t path_cmp(783,20303
+static int32_t edge_penalty(788,20424
+static void dijkstra_path(793,20550
+static int build_paths(913,24615
+static int gaussian[gaussian1022,26347
+static int smooth_height(1029,26493
+static void find_building_location(1210,30627
+static int place_pokemart(1243,31990
+static int place_center(1257,32266
+static terrain_type_t border_type(1273,32703
+static int map_terrain(1334,33697
+static int place_boulders(1555,38271
+static int place_trees(1575,38645
+static int new_map(1599,39204
+static void print_map(1701,41371
+void init_world(1770,42956
+void delete_world(1777,43082
+#define ter_cost(1794,43324
+static int32_t hiker_cmp(1796,43378
+static int32_t rival_cmp(1804,43673
+void pathfind(1812,43968
+void print_hiker_dist(2065,54215
+void print_rival_dist(2086,54533
+void print_character(2108,54891
+bool handle_movement_input(2145,56406
+void display_info_menu(2218,58945
+int handle_menu_input(2223,59006
+void game_loop(2241,59353
+int main(2280,60252

@@ -73,6 +73,8 @@ typedef int16_t pair_t[num_dims];
 #define heightpair(pair) (m->height[pair[dim_y]][pair[dim_x]])
 #define heightxy(x, y) (m->height[y][x])
 
+bool menu_open = false;
+
 typedef enum __attribute__((__packed__)) terrain_type
 {
   ter_boulder,
@@ -2144,50 +2146,50 @@ bool handle_movement_input(character_t *c, pair_t d, int i)
 {
   bool selected_movement = false;
   switch (i) {
-    case 55:  // 7 or y Attempt to move PC one cell to the upper left.
-    case 121:
+    case '7':  // 7 or y Attempt to move PC one cell to the upper left.
+    case 'y':
       d[dim_y] = c->pos[dim_y] + all_dirs[0][dim_y];
       d[dim_x] = c->pos[dim_x] + all_dirs[0][dim_x];
       selected_movement = true;
       break;
-    case 56:  // 8 or k Attempt to move PC one cell up.
-    case 107:
+    case '8':  // 8 or k Attempt to move PC one cell up.
+    case 'k':
       d[dim_y] = c->pos[dim_y] + all_dirs[3][dim_y];
       d[dim_x] = c->pos[dim_x] + all_dirs[3][dim_x];
       selected_movement = true;
       break;
-    case 57:  // 9 or u Attempt to move PC one cell to the upper right.
-    case 117:
+    case '9':  // 9 or u Attempt to move PC one cell to the upper right.
+    case 'u':
       d[dim_y] = c->pos[dim_y] + all_dirs[5][dim_y];
       d[dim_x] = c->pos[dim_x] + all_dirs[5][dim_x];
       selected_movement = true;
       break;
-    case 54:  // 6 or l Attempt to move PC one cell to the right.
-    case 108:
+    case '6':  // 6 or l Attempt to move PC one cell to the right.
+    case 'l':
       d[dim_y] = c->pos[dim_y] + all_dirs[6][dim_y];
       d[dim_x] = c->pos[dim_x] + all_dirs[6][dim_x];
       selected_movement = true;
       break;
-    case 51:  // 3 or n Attempt to move PC one cell to the lower right.
-    case 110:
+    case '3':  // 3 or n Attempt to move PC one cell to the lower right.
+    case 'n':
       d[dim_y] = c->pos[dim_y] + all_dirs[7][dim_y];
       d[dim_x] = c->pos[dim_x] + all_dirs[7][dim_x];
       selected_movement = true;
       break;
-    case 50:  // 2 or j Attempt to move PC one cell down.
-    case 106:
+    case '2':  // 2 or j Attempt to move PC one cell down.
+    case 'j':
       d[dim_y] = c->pos[dim_y] + all_dirs[4][dim_y];
       d[dim_x] = c->pos[dim_x] + all_dirs[4][dim_x];
       selected_movement = true;
       break;
-    case 49:  // 1 or b Attempt to move PC one cell to the lower left.
-    case 98:
+    case '1':  // 1 or b Attempt to move PC one cell to the lower left.
+    case 'b':
       d[dim_y] = c->pos[dim_y] + all_dirs[2][dim_y];
       d[dim_x] = c->pos[dim_x] + all_dirs[2][dim_x];
       selected_movement = true;
       break;
-    case 52:  // 4 or h Attempt to move PC one cell to the left.
-    case 104:
+    case '4':  // 4 or h Attempt to move PC one cell to the left.
+    case 'h':
       d[dim_y] = c->pos[dim_y] + all_dirs[1][dim_y];
       d[dim_x] = c->pos[dim_x] + all_dirs[1][dim_x];
       selected_movement = true;
@@ -2213,9 +2215,24 @@ bool handle_movement_input(character_t *c, pair_t d, int i)
   return false;
 }
 
-void handle_menu_input()
+void display_info_menu(const char *t, const char *d)
 {
-  
+  int x = 20, y = 2;
+}
+
+int handle_menu_input(int i)
+{
+  const char *title = "Title";
+  const char *description = "Description";
+  display_info_menu(title, description);
+
+  int input;
+  do {
+    input = getch();
+    if (input == 'Q') return input;
+
+  } while (input != '\x1B');
+  return i;
 }
 
 void game_loop()
@@ -2223,6 +2240,7 @@ void game_loop()
   character_t *c;
   pair_t d;
 
+  bool quit = false;
   int input;
   do
   {
@@ -2233,11 +2251,13 @@ void game_loop()
       print_map();
       
       bool moved = false;
-      while (!moved && input != 81) 
+      while (!moved && input != 'Q') 
       {
         input = getch();
+        if (input == 'Q') break;
 
-        handle_menu_input();
+        int out = handle_menu_input(input);
+        if (out == 'Q') break;
         moved = handle_movement_input(c, d, input);
       }
     }
@@ -2252,7 +2272,7 @@ void game_loop()
       c->pos[dim_x] = d[dim_x];
     }
     heap_insert(&world.cur_map->turn, c);
-  } while (input != 81);
+  } while (input != 'Q' || quit);
 }
 
 int main(int argc, char *argv[])
