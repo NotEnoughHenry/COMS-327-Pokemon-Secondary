@@ -180,41 +180,41 @@ static void move_sentry_func(430,11017
 static void move_explorer_func(436,11142
 static void move_swimmer_func(465,12268
 static void move_pc_func(554,15099
-void rand_pos(580,15783
-void new_hiker(586,15900
-void new_rival(612,16527
-void new_swimmer(639,17213
-void new_char_other(664,17812
-void place_characters(707,18790
-int32_t cmp_char_turns(737,19342
-void delete_character(747,19698
-void init_pc(760,19850
-static int32_t path_cmp(783,20303
-static int32_t edge_penalty(788,20424
-static void dijkstra_path(793,20550
-static int build_paths(913,24615
-static int gaussian[gaussian1022,26347
-static int smooth_height(1029,26493
-static void find_building_location(1210,30627
-static int place_pokemart(1243,31990
-static int place_center(1257,32266
-static terrain_type_t border_type(1273,32703
-static int map_terrain(1334,33697
-static int place_boulders(1555,38271
-static int place_trees(1575,38645
-static int new_map(1599,39204
-static void print_map(1701,41371
-void init_world(1770,42956
-void delete_world(1777,43082
-#define ter_cost(1794,43324
-static int32_t hiker_cmp(1796,43378
-static int32_t rival_cmp(1804,43673
-void pathfind(1812,43968
-void print_hiker_dist(2065,54215
-void print_rival_dist(2086,54533
-void print_character(2108,54891
-bool handle_movement_input(2145,56406
-void display_info_menu(2218,58945
-int handle_menu_input(2223,59006
-void game_loop(2241,59353
-int main(2280,60252
+void rand_pos(585,15906
+void new_hiker(591,16023
+void new_rival(617,16650
+void new_swimmer(644,17336
+void new_char_other(669,17935
+void place_characters(712,18913
+int32_t cmp_char_turns(742,19465
+void delete_character(752,19821
+void init_pc(765,19973
+static int32_t path_cmp(788,20426
+static int32_t edge_penalty(793,20547
+static void dijkstra_path(798,20673
+static int build_paths(918,24738
+static int gaussian[gaussian1027,26470
+static int smooth_height(1034,26616
+static void find_building_location(1215,30750
+static int place_pokemart(1248,32113
+static int place_center(1262,32389
+static terrain_type_t border_type(1278,32826
+static int map_terrain(1339,33820
+static int place_boulders(1560,38394
+static int place_trees(1580,38768
+static int new_map(1604,39327
+static void print_map(1706,41494
+void init_world(1775,43079
+void delete_world(1782,43205
+#define ter_cost(1799,43447
+static int32_t hiker_cmp(1801,43501
+static int32_t rival_cmp(1809,43796
+void pathfind(1817,44091
+void print_hiker_dist(2070,54338
+void print_rival_dist(2091,54656
+void print_character(2113,55014
+bool handle_movement_input(2141,56044
+void display_info_menu(2222,58781
+int handle_menu_input(2265,59854
+void game_loop(2307,60990
+int main(2347,61948

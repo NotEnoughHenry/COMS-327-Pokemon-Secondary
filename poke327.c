@@ -554,13 +554,18 @@ static void move_swimmer_func(character_t *c, pair_t dest)
 static void move_pc_func(character_t *c, pair_t dest)
 {
   map_t *m = world.cur_map;
+
   if (m->map[dest[dim_y]][dest[dim_x]] != ter_path &&
       m->map[dest[dim_y]][dest[dim_x]] != ter_mart &&
       m->map[dest[dim_y]][dest[dim_x]] != ter_center &&
       m->map[dest[dim_y]][dest[dim_x]] != ter_grass &&
-      m->map[dest[dim_y]][dest[dim_x]] != ter_clearing
+      m->map[dest[dim_y]][dest[dim_x]] != ter_clearing 
     )
   {
+    dest[dim_x] = c->pos[dim_x];
+    dest[dim_y] = c->pos[dim_y];
+  }
+  if (m->cmap[dest[dim_y]][dest[dim_x]] != NULL) {
     dest[dim_x] = c->pos[dim_x];
     dest[dim_y] = c->pos[dim_y];
   }
@@ -2112,16 +2117,7 @@ void print_character(character_t *c)
 }
 
 /*
-55 & 121 | 7 or y Attempt to move PC one cell to the upper left.
-56 & 107 | 8 or k Attempt to move PC one cell up.
-57 & 117 | 9 or u Attempt to move PC one cell to the upper right.
-54 & 108 | 6 or l Attempt to move PC one cell to the right.
-51 & 110 | 3 or n Attempt to move PC one cell to the lower right.
-50 & 106 | 2 or j Attempt to move PC one cell down.
-49 & 98 | 1 or b Attempt to move PC one cell to the lower left.
-52 & 104 | 4 or h Attempt to move PC one cell to the left.
-
-62 | > Attempt to enter a Pokemart or Pok ´ emon Center. Works only if standing on a ´
+62 | > Attempt to enter a Pokemart or Pok´emon Center. Works only if standing on a ´
 building. Leads to a user interface for the appropriate building. You may simply
 add a placeholder for this for now, which you exit with a <.
 
@@ -2145,6 +2141,7 @@ at bottom of list, scroll list down.
 bool handle_movement_input(character_t *c, pair_t d, int i)
 {
   bool selected_movement = false;
+  bool override = false;
   switch (i) {
     case '7':  // 7 or y Attempt to move PC one cell to the upper left.
     case 'y':
@@ -2194,6 +2191,13 @@ bool handle_movement_input(character_t *c, pair_t d, int i)
       d[dim_x] = c->pos[dim_x] + all_dirs[1][dim_x];
       selected_movement = true;
       break;
+    case ' ':
+    case '.':
+    case '5':
+      d[dim_y] = c->pos[dim_y];
+      d[dim_x] = c->pos[dim_x];
+      selected_movement = true;
+      override = true;
   }
   
   if (selected_movement) {
@@ -2210,28 +2214,92 @@ bool handle_movement_input(character_t *c, pair_t d, int i)
     c->pos[dim_y] = d[dim_y];
     c->pos[dim_x] = d[dim_x];
 
-    return cur_pos[dim_y] != c->pos[dim_y] || cur_pos[dim_x] != c->pos[dim_x];
+    return cur_pos[dim_y] != c->pos[dim_y] || cur_pos[dim_x] != c->pos[dim_x] || override;
   }
   return false;
 }
 
-void display_info_menu(const char *t, const char *d)
+void display_info_menu(const char *t, const char **d)
 {
-  int x = 20, y = 2;
+  const int menu_x = 20, menu_y = 2;
+  const int menu_height = 17, menu_width = 40;
+  const char t_border = '-',  w_border = '|', blank = ' ';
+
+  for (int i = menu_y; i < menu_y + menu_height; i++) {
+    for (int j = menu_x; j < menu_x + menu_width; j++) {
+      if (j == menu_x || j == menu_x + menu_width - 1) {
+        mvaddch(i, j, w_border);
+      } else if (i == menu_y || i == menu_y + menu_height - 1) {
+        mvaddch(i, j, t_border);
+      } else {
+        mvaddch(i, j, blank);
+      }
+    }
+  }
+
+  // Print Title
+  int curser_x = menu_x + 2, curser_y = menu_y + 1;
+  move(curser_y, curser_x);
+  printw(t);
+
+  // Print Description
+  int d_length = 0;
+  while (d[d_length] != NULL) {
+    d_length++;
+  }
+
+  for (int i = 0; i < d_length; i++) {
+    if (curser_y + i + 2 > menu_y + menu_height - 3)  {
+      move(curser_y + i + 2, curser_x);
+      printw("...");
+      break;
+    }
+    move(curser_y + i + 2, curser_x);
+    printw(d[i]);
+  }
+
+  move(MAP_Y - 1, MAP_X);
 }
 
-int handle_menu_input(int i)
+int handle_menu_input(character_t *c, int i)
 {
-  const char *title = "Title";
-  const char *description = "Description";
-  display_info_menu(title, description);
+  map_t *m = world.cur_map;
+  char current_pos = m->map[c->pos[dim_y]][c->pos[dim_x]];
 
+  bool menu_open = false;
+  char menu_type;
+
+  if (i == '>') {
+    if (current_pos == ter_mart) {
+      const char *title = "Welcome to the Pokemart!";
+      const char *description[] = {"Coming Soon!", NULL};
+      display_info_menu(title, description);
+      menu_open = true;
+      menu_type = 'P';
+    } else if (current_pos == ter_center) {
+      const char *title = "Welcome to the Pokecenter!";
+      const char *description[] = {"Coming Soon!", NULL};
+      display_info_menu(title, description);
+      menu_open = true;
+      menu_type = 'P';
+    }
+  } else if (i == 't') {
+    const char *title = "Trainer List.";
+    const char *description[] = {"Coming Soon!", "Coming Soon!", "Coming Soon!", "Coming Soon!", "Coming Soon!", "Coming Soon!", "Coming Soon!", "Coming Soon!", NULL};
+
+    display_info_menu(title, description);
+    menu_open = true;
+    menu_type = 'T';
+  }
+
+  if (menu_open) {
   int input;
-  do {
-    input = getch();
-    if (input == 'Q') return input;
-
-  } while (input != '\x1B');
+    do {
+      input = getch();
+      if (input == 'Q') return input;
+    } while ((menu_type == 'T' && input != '\x1B') || (menu_type == 'P' && input != '<'));
+    print_map();
+  }
   return i;
 }
 
@@ -2256,8 +2324,8 @@ void game_loop()
         input = getch();
         if (input == 'Q') break;
 
-        int out = handle_menu_input(input);
-        if (out == 'Q') break;
+        int out = handle_menu_input(c, input);
+        if (out == 'Q') {input = out; break;}
         moved = handle_movement_input(c, d, input);
       }
     }
