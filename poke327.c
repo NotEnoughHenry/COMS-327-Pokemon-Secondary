@@ -6,6 +6,7 @@
 #include <sys/time.h>
 #include <assert.h>
 #include <unistd.h>
+#include <ncurses.h>
 
 #include "heap.h"
 
@@ -53,32 +54,6 @@ typedef int16_t pair_t[num_dims];
 #define SHORT_GRASS_SYMBOL    '.'
 #define WATER_SYMBOL          '~'
 #define ERROR_SYMBOL          '&'
-
-// Colors for output
-#define BBLK "\033[30;1m"
-#define BRED "\033[31;1m"
-#define BGRN "\033[32;1m"
-#define BYLW "\033[33;1m"
-#define BBLU "\033[34;1m"
-#define BMAG "\033[35;1m"
-#define BCYN "\033[36;1m"
-#define BWHT "\033[37;1m"
-#define BLK "\e[0;30m"
-#define RED "\e[0;31m"
-#define GRN "\e[0;32m"
-#define YEL "\e[0;33m"
-#define BLU "\e[0;34m"
-#define MAG "\e[0;35m"
-#define CYN "\e[0;36m"
-#define WHT "\e[0;37m"
-#define BLKB "\e[40m"
-#define REDB "\e[41m"
-#define GRNB "\e[42m"
-#define YELB "\e[43m"
-#define BLUB "\e[44m"
-#define MAGB "\e[45m"
-#define CYNB "\e[46m"
-#define WHTB "\e[47m"
 
 #define DIJKSTRA_PATH_MAX (INT_MAX / 2)
 
@@ -839,7 +814,7 @@ static int build_paths(map_t *m)
 {
   pair_t from, to;
 
-  /*  printf("%d %d %d %d\n", m->n, m->s, m->e, m->w);*/
+  /*  printw("%d %d %d %d\n", m->n, m->s, m->e, m->w);*/
 
   if (m->e != -1 && m->w != -1) {
     from[dim_x] = 1;
@@ -1472,7 +1447,7 @@ static int new_map()
   d = (abs(world.cur_idx[dim_x] - (WORLD_SIZE / 2)) +
        abs(world.cur_idx[dim_y] - (WORLD_SIZE / 2)));
   p = d > 200 ? 5 : (50 - ((45 * d) / 200));
-  //  printf("d=%d, p=%d\n", d, p);
+  //  printw("d=%d, p=%d\n", d, p);
   if ((rand() % 100) < p || !d) {
     place_pokemart(world.cur_map);
   }
@@ -1500,68 +1475,55 @@ static void print_map()
   int x, y;
   int default_reached = 0;
 
-  printf("\n\n\n");
+  printw("\n\n\n");
 
   for (y = 0; y < MAP_Y; y++) {
     for (x = 0; x < MAP_X; x++) {
       if (world.cur_map->cmap[y][x]) {
-        putchar(world.cur_map->cmap[y][x]->symbol);
+        mvaddch(y, x, world.cur_map->cmap[y][x]->symbol);
       } else {
         switch (world.cur_map->map[y][x]) {
         case ter_boulder:
-          printf("%s%s", BLK, BLKB);
-          putchar(BOULDER_SYMBOL);
+          mvaddch(y, x, BOULDER_SYMBOL);
           break;
         case ter_mountain:
-          printf("%s%s", BLK, BLKB);
-          putchar(MOUNTAIN_SYMBOL);
+          mvaddch(y, x, MOUNTAIN_SYMBOL);
           break;
         case ter_tree:
-          printf("%s%s", BLK, BLKB);
-          putchar(TREE_SYMBOL);
+          mvaddch(y, x, TREE_SYMBOL);
           break;
         case ter_forest:
-          printf("%s%s", BGRN, GRNB);
-          putchar(FOREST_SYMBOL);
+          mvaddch(y, x, FOREST_SYMBOL);
           break;
         case ter_path:
-          printf("%s", BBLK);
-          putchar(PATH_SYMBOL);
+          mvaddch(y, x, PATH_SYMBOL);
           break;
         case ter_gate:
-          printf("%s", BBLK);
-          putchar(GATE_SYMBOL);
+          mvaddch(y, x, GATE_SYMBOL);
           break;
         case ter_mart:
-          printf("%s%s", BCYN, CYNB);
-          putchar(POKEMART_SYMBOL);
+          mvaddch(y, x, POKEMART_SYMBOL);
           break;
         case ter_center:
-          printf("%s%s", BRED, REDB);
-          putchar(POKEMON_CENTER_SYMBOL);
+          mvaddch(y, x, POKEMON_CENTER_SYMBOL);
           break;
         case ter_grass:
-          printf("%s", BGRN);
-          putchar(TALL_GRASS_SYMBOL);
+          mvaddch(y, x, TALL_GRASS_SYMBOL);
           break;
         case ter_clearing:
-          printf("%s", GRN);
-          putchar(SHORT_GRASS_SYMBOL);
+          mvaddch(y, x, SHORT_GRASS_SYMBOL);
           break;
         case ter_water:
-          printf("%s%s", BBLU, BLUB);
-          putchar(WATER_SYMBOL);
+          mvaddch(y, x, WATER_SYMBOL);
           break;
         default:
-          printf("%s", BYLW);
-          putchar(ERROR_SYMBOL);
+          mvaddch(y, x, ERROR_SYMBOL);
           default_reached = 1;
           break;
         }
-        printf("\033[0m");
       }
     }
-    putchar('\n');
+    // mvaddch(y, x, '\n');
   }
 
   if (default_reached) {
@@ -1834,12 +1796,12 @@ void print_hiker_dist()
   for (y = 0; y < MAP_Y; y++) {
     for (x = 0; x < MAP_X; x++) {
       if (world.hiker_dist[y][x] == DIJKSTRA_PATH_MAX) {
-        printf("   ");
+        printw("   ");
       } else {
-        printf(" %02d", world.hiker_dist[y][x] % 100);
+        printw(" %02d", world.hiker_dist[y][x] % 100);
       }
     }
-    printf("\n");
+    printw("\n");
   }
 }
 
@@ -1851,32 +1813,71 @@ void print_rival_dist()
     for (x = 0; x < MAP_X; x++) {
       if (world.rival_dist[y][x] == DIJKSTRA_PATH_MAX ||
           world.rival_dist[y][x] < 0) {
-        printf("   ");
+        printw("   ");
       } else {
-        printf(" %02d", world.rival_dist[y][x] % 100);
+        printw(" %02d", world.rival_dist[y][x] % 100);
       }
     }
-    printf("\n");
+    printw("\n");
   }
 }
 
 void print_character(character_t *c)
 {
-  printf("%c: <%d,%d> %d (%d)\n", c->symbol, c->pos[dim_x],
+  printw("%c: <%d,%d> %d (%d)\n", c->symbol, c->pos[dim_x],
          c->pos[dim_y], c->next_turn, c->seq_num);
 }
 
+/*
+55 & 121 | 7 or y Attempt to move PC one cell to the upper left.
+
+56 & 107 | 8 or k Attempt to move PC one cell up.
+
+57 & 117 | 9 or u Attempt to move PC one cell to the upper right.
+
+54 & 108 | 6 or l Attempt to move PC one cell to the right.
+
+51 & 110 | 3 or n Attempt to move PC one cell to the lower right.
+
+50 & 106 | 2 or j Attempt to move PC one cell down.
+
+49 & 98 | 1 or b Attempt to move PC one cell to the lower left.
+
+52 & 104 | 4 or h Attempt to move PC one cell to the left.
+
+62 | > Attempt to enter a Pokemart or Pok ´ emon Center. Works only if standing on a ´
+building. Leads to a user interface for the appropriate building. You may simply
+add a placeholder for this for now, which you exit with a <.
+
+5 & 32 | 5 or space or . Rest for a turn. NPCs still move.
+
+116 | t Display a list of trainers on the map, with their symbol and position relative to
+the PC (e.g.: “r, 2 north and 14 west”).
+
+259 | up arrow When displaying trainer list, if entire list does not fit in screen and not currently
+at top of list, scroll list up.
+
+258 | down arrow When displaying trainer list, if entire list does not fit in screen and not currently
+at bottom of list, scroll list down.
+
+27 | escape When displaying trainer list, return to character control.
+
+81 | Q Quit the game. Your main game loop will become something like: while
+(!quit game) { ... }
+*/
 void game_loop()
 {
+  // refresh();
   character_t *c;
   pair_t d;
-  
-  while (1) {
+
+  int input;
+  do {
     c = heap_remove_min(&world.cur_map->turn);
     //    print_character(c);
+
     if (c == &world.pc) {
       print_map();
-      usleep(250000);
       c->next_turn += move_cost[char_pc][world.cur_map->map[c->pos[dim_y]]
                                                            [c->pos[dim_x]]];
     } else {
@@ -1889,11 +1890,18 @@ void game_loop()
       c->pos[dim_x] = d[dim_x];
     }
     heap_insert(&world.cur_map->turn, c);
-  }
+
+    input = getch();
+  } while(input != 81);
 }
 
-int main(int argc, char *argv[])
+void main(int argc, char *argv[])
 {
+  initscr(); 
+  cbreak(); 
+  noecho(); 
+  keypad(stdscr, TRUE); 
+
   struct timeval tv;
   uint32_t seed;
 
@@ -1904,16 +1912,15 @@ int main(int argc, char *argv[])
     seed = (tv.tv_usec ^ (tv.tv_sec << 20)) & 0xffffffff;
   }
 
-  printf("Using seed: %u\n", seed);
   srand(seed);
 
   init_world();
 
   game_loop();
+  endwin();
 
   delete_world();
 
+  printf("Using seed: %u\n", seed);
   printf("But how are you going to be the very best if you quit?\n");
-  
-  return 0;
 }
