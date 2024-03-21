@@ -218,5 +218,5 @@ bool handle_movement_input(2143,56095
 void display_info_menu(2224,58832
 int trainer_menu_buffer 2267,59887
 int handle_menu_input(2268,59916
-void game_loop(2349,62584
-int main(2390,63575
+void game_loop(2347,62480
+int main(2388,63471

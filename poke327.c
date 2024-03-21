@@ -2118,28 +2118,6 @@ void print_character(character_t *c)
          c->pos[dim_y], c->next_turn, c->seq_num);
 }
 
-/*
-62 | > Attempt to enter a Pokemart or Pok´emon Center. Works only if standing on a ´
-building. Leads to a user interface for the appropriate building. You may simply
-add a placeholder for this for now, which you exit with a <.
-
-5 & 32 | 5 or space or . Rest for a turn. NPCs still move.
-
-116 | t Display a list of trainers on the map, with their symbol and position relative to
-the PC (e.g.: “r, 2 north and 14 west”).
-
-259 | up arrow When displaying trainer list, if entire list does not fit in screen and not currently
-at top of list, scroll list up.
-
-258 | down arrow When displaying trainer list, if entire list does not fit in screen and not currently
-at bottom of list, scroll list down.
-
-27 | escape When displaying trainer list, return to character control.
-
-81 | Q Quit the game. Your main game loop will become something like: while
-(!quit game) { ... }
-*/
-
 bool handle_movement_input(character_t *c, pair_t d, int i)
 {
   bool selected_movement = false;
