@@ -1,1 +1,1 @@
-poke327.o: poke327.c heap.h
+poke327.o: poke327.cpp heap.h

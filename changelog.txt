@@ -1,1 +1,10 @@
-e5b15f0 (HEAD -> main, origin/main) adding files
+e6faf7e (HEAD -> main, origin/main) Removed comments
+52832af Add trainer list menu
+bd7c1a6 Added Pokecenter/pokemart menu
+b4ba968 Added menu basics
+846ff20 Added player movement
+3c02995 Fixed print issues
+ef5126b Proper gitignore now
+e1658d7 adding gitignore
+8e7e609 Update map colors & border chars
+e5b15f0 adding files

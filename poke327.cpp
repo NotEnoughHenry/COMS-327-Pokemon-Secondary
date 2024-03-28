@@ -7,6 +7,8 @@
 #include <assert.h>
 #include <unistd.h>
 #include <ncurses.h>
+#include <cstdlib>
+#include <string>
 
 #include "heap.h"
 
@@ -16,8 +18,9 @@
   _tmp;                          \
 })
 
-typedef struct path
+typedef class path
 {
+  public:
   heap_node_t *hn;
   uint8_t pos[2];
   uint8_t from[2];
@@ -29,9 +32,9 @@ typedef enum dim
   dim_x,
   dim_y,
   num_dims
-} dim_t;
+} dim;
 
-typedef int16_t pair_t[num_dims];
+typedef int pair[num_dims];
 
 #define MAP_X 80
 #define MAP_Y 21
@@ -72,8 +75,7 @@ typedef int16_t pair_t[num_dims];
 #define mapxy(x, y) (m->map[y][x])
 #define heightpair(pair) (m->height[pair[dim_y]][pair[dim_x]])
 #define heightxy(x, y) (m->height[y][x])
-
-bool menu_open = false;
+static int new_map();
 
 typedef enum __attribute__((__packed__)) terrain_type
 {
@@ -90,7 +92,7 @@ typedef enum __attribute__((__packed__)) terrain_type
   ter_gate,
   num_terrain_types,
   ter_debug
-} terrain_type_t;
+} terrain_type;
 
 typedef enum __attribute__((__packed__)) movement_type
 {
@@ -105,62 +107,68 @@ typedef enum __attribute__((__packed__)) movement_type
   num_movement_types
 } movement_type_t;
 
-typedef enum __attribute__((__packed__)) character_type
+typedef enum __attribute__((__packed__)) characterype
 {
   char_pc,
   char_hiker,
   char_rival,
   char_swimmer,
   char_other,
-  num_character_types
-} character_type_t;
+  num_characterypes
+} characterype_t;
 
-typedef struct pc
+typedef class pc
 {
+  public:
 } pc_t;
 
-typedef struct npc
+typedef class npc
 {
-  character_type_t ctype;
+  public:
+  characterype_t ctype;
   movement_type_t mtype;
-  pair_t dir;
+  pair dir;
 } npc_t;
 
-typedef struct character
+typedef class character
 {
+  public:
   npc_t *npc;
   pc_t *pc;
-  pair_t pos;
+  pair pos;
   char symbol;
   int next_turn;
   int seq_num;
-} character_t;
+} character;
 
-typedef struct map
+typedef class map
 {
-  terrain_type_t map[MAP_Y][MAP_X];
+  public:
+  terrain_type map[MAP_Y][MAP_X];
   uint8_t height[MAP_Y][MAP_X];
-  character_t *cmap[MAP_Y][MAP_X];
+  character *cmap[MAP_Y][MAP_X];
   heap_t turn;
   int8_t n, s, e, w;
-} map_t;
+} map;
 
-typedef struct queue_node
+typedef class queue_node
 {
+  public:
   int x, y;
   struct queue_node *next;
 } queue_node_t;
 
-typedef struct world
+typedef class world
 {
-  map_t *world[WORLD_SIZE][WORLD_SIZE];
-  pair_t cur_idx;
-  map_t *cur_map;
+  public:
+  map *world[WORLD_SIZE][WORLD_SIZE];
+  pair cur_idx;
+  map *cur_map;
   /* Place distance maps in world, not map, since *
    * we only need one pair at any given time.     */
   int hiker_dist[MAP_Y][MAP_X];
   int rival_dist[MAP_Y][MAP_X];
-  character_t pc;
+  character pc;
   int char_seq_num;
 } world_t;
 
@@ -168,7 +176,7 @@ typedef struct world
  * large thing to put on the stack.  To avoid that, world is a global.     */
 world_t world;
 
-static pair_t all_dirs[8] = {
+static pair all_dirs[8] = {
     {-1, -1},
     {-1, 0},
     {-1, 1},
@@ -185,7 +193,7 @@ static pair_t all_dirs[8] = {
  * is governed by the swimmer movement code.  However, paths over   *
  * or adjacent to water are bridges.  They can't have inifinite     *
  * movement cost, or it throws a wrench into the turn queue.        */
-int32_t move_cost[num_character_types][num_terrain_types] = {
+int32_t move_cost[num_characterypes][num_terrain_types] = {
     //  boulder,tree,path,mart,center,grass,clearing,mountain,forest,water,gate
     {IM, IM, 10, 10, 10, 20, 10, IM, IM, IM, 10},
     {IM, IM, 10, 50, 50, 15, 10, 15, 15, IM, IM},
@@ -212,9 +220,9 @@ int32_t move_cost[num_character_types][num_terrain_types] = {
    (world.cur_map->map[pos[dim_y] + 1][pos[dim_x]] == ter) ||     \
    (world.cur_map->map[pos[dim_y] + 1][pos[dim_x] + 1] == ter))
 
-void pathfind(map_t *m);
+void pathfind(map *m);
 
-uint32_t can_see(map_t *m, character_t *voyeur, character_t *exhibitionist)
+uint32_t can_see(map *m, character *voyeur, character *exhibitionist)
 {
   /* Application of Bresenham's Line Drawing Algorithm.  If we can draw a   *
    * line from v to e without intersecting any foreign terrain, then v can  *
@@ -228,8 +236,8 @@ uint32_t can_see(map_t *m, character_t *voyeur, character_t *exhibitionist)
    * the PC adjacent to water or on a bridge?  v is always a swimmer, and e *
    * is always the player character.                                        */
 
-  pair_t first, second;
-  pair_t del, f;
+  pair first, second;
+  pair del, f;
   int16_t a, b, c, i;
 
   first[dim_x] = voyeur->pos[dim_x];
@@ -313,7 +321,7 @@ uint32_t can_see(map_t *m, character_t *voyeur, character_t *exhibitionist)
   return 1;
 }
 
-static void move_hiker_func(character_t *c, pair_t dest)
+static void move_hiker_func(character *c, pair dest)
 {
   int min;
   int base;
@@ -344,7 +352,7 @@ static void move_hiker_func(character_t *c, pair_t dest)
   }
 }
 
-static void move_rival_func(character_t *c, pair_t dest)
+static void move_rival_func(character *c, pair dest)
 {
   int min;
   int base;
@@ -375,9 +383,9 @@ static void move_rival_func(character_t *c, pair_t dest)
   }
 }
 
-static void move_pacer_func(character_t *c, pair_t dest)
+static void move_pacer_func(character *c, pair dest)
 {
-  terrain_type_t t;
+  terrain_type t;
 
   dest[dim_x] = c->pos[dim_x];
   dest[dim_y] = c->pos[dim_y];
@@ -402,7 +410,7 @@ static void move_pacer_func(character_t *c, pair_t dest)
   }
 }
 
-static void move_wanderer_func(character_t *c, pair_t dest)
+static void move_wanderer_func(character *c, pair dest)
 {
   dest[dim_x] = c->pos[dim_x];
   dest[dim_y] = c->pos[dim_y];
@@ -427,13 +435,13 @@ static void move_wanderer_func(character_t *c, pair_t dest)
   }
 }
 
-static void move_sentry_func(character_t *c, pair_t dest)
+static void move_sentry_func(character *c, pair dest)
 {
   dest[dim_x] = c->pos[dim_x];
   dest[dim_y] = c->pos[dim_y];
 }
 
-static void move_explorer_func(character_t *c, pair_t dest)
+static void move_explorer_func(character *c, pair dest)
 {
   dest[dim_x] = c->pos[dim_x];
   dest[dim_y] = c->pos[dim_y];
@@ -462,10 +470,10 @@ static void move_explorer_func(character_t *c, pair_t dest)
   }
 }
 
-static void move_swimmer_func(character_t *c, pair_t dest)
+static void move_swimmer_func(character *c, pair dest)
 {
-  map_t *m = world.cur_map;
-  pair_t dir;
+  map *m = world.cur_map;
+  pair dir;
 
   dest[dim_x] = c->pos[dim_x];
   dest[dim_y] = c->pos[dim_y];
@@ -490,7 +498,7 @@ static void move_swimmer_func(character_t *c, pair_t dest)
                [dest[dim_x] + dir[dim_x]] == ter_water) ||
         ((m->map[dest[dim_y] + dir[dim_y]]
                 [dest[dim_x] + dir[dim_x]] == ter_path) &&
-         is_adjacent(((pair_t){(dest[dim_x] + dir[dim_x]),
+         is_adjacent(((pair){(dest[dim_x] + dir[dim_x]),
                                (dest[dim_y] + dir[dim_y])}),
                      ter_water)))
     {
@@ -499,7 +507,7 @@ static void move_swimmer_func(character_t *c, pair_t dest)
     }
     else if ((m->map[dest[dim_y]][dest[dim_x] + dir[dim_x]] == ter_water) ||
              ((m->map[dest[dim_y]][dest[dim_x] + dir[dim_x]] == ter_path) &&
-              is_adjacent(((pair_t){(dest[dim_x] + dir[dim_x]),
+              is_adjacent(((pair){(dest[dim_x] + dir[dim_x]),
                                     (dest[dim_y])}),
                           ter_water)))
     {
@@ -507,7 +515,7 @@ static void move_swimmer_func(character_t *c, pair_t dest)
     }
     else if ((m->map[dest[dim_y] + dir[dim_y]][dest[dim_x]] == ter_water) ||
              ((m->map[dest[dim_y] + dir[dim_y]][dest[dim_x]] == ter_path) &&
-              is_adjacent(((pair_t){(dest[dim_x]),
+              is_adjacent(((pair){(dest[dim_x]),
                                     (dest[dim_y] + dir[dim_y])}),
                           ter_water)))
     {
@@ -523,7 +531,7 @@ static void move_swimmer_func(character_t *c, pair_t dest)
                [dest[dim_x] + dir[dim_x]] != ter_water) ||
         !((m->map[dest[dim_y] + dir[dim_y]]
                  [dest[dim_x] + dir[dim_x]] == ter_path) &&
-          is_adjacent(((pair_t){dest[dim_x] + dir[dim_x],
+          is_adjacent(((pair){dest[dim_x] + dir[dim_x],
                                 dest[dim_y] + dir[dim_y]}),
                       ter_water)))
     {
@@ -534,7 +542,7 @@ static void move_swimmer_func(character_t *c, pair_t dest)
                [dest[dim_x] + dir[dim_x]] == ter_water) ||
         ((m->map[dest[dim_y] + dir[dim_y]]
                 [dest[dim_x] + dir[dim_x]] == ter_path) &&
-         is_adjacent(((pair_t){dest[dim_x] + dir[dim_x],
+         is_adjacent(((pair){dest[dim_x] + dir[dim_x],
                                dest[dim_y] + dir[dim_y]}),
                      ter_water)))
     {
@@ -551,9 +559,38 @@ static void move_swimmer_func(character_t *c, pair_t dest)
   }
 }
 
-static void move_pc_func(character_t *c, pair_t dest)
+static void move_pc_func(character *c, pair dest)
 {
-  map_t *m = world.cur_map;
+  map *m = world.cur_map;
+
+  if (m->map[dest[dim_y]][dest[dim_x]] == ter_gate) {
+    if (dest[dim_x] == 1) {
+      if (world.cur_idx[dim_x] > 0) {
+        world.cur_idx[dim_x] = world.cur_idx[dim_x] - 1;
+        dest[dim_x] = MAP_X - 3;
+      }
+    } else if (dest[dim_x] == (MAP_X - 2)) {
+      if (world.cur_idx[dim_x] < WORLD_SIZE) {
+        world.cur_idx[dim_x] = world.cur_idx[dim_x] + 1;
+        dest[dim_x] = 2;
+      }
+    } else if (dest[dim_y] == 1) {
+      if (world.cur_idx[dim_y] > 0) {
+        world.cur_idx[dim_y] = world.cur_idx[dim_y] - 1;
+        dest[dim_y] = MAP_Y - 3;
+      }
+    } else if (dest[dim_y] == (MAP_Y - 2)) {
+      if (world.cur_idx[dim_y] < WORLD_SIZE) {
+        world.cur_idx[dim_y] = world.cur_idx[dim_y] + 1;
+        dest[dim_y] = 2;
+      }
+    }
+
+    new_map();
+    c->pos[dim_x] = dest[dim_x];
+    c->pos[dim_y] = dest[dim_y];
+    return;
+  }
 
   if (m->map[dest[dim_y]][dest[dim_x]] != ter_path &&
       m->map[dest[dim_y]][dest[dim_x]] != ter_mart &&
@@ -571,7 +608,7 @@ static void move_pc_func(character_t *c, pair_t dest)
   }
 }
 
-void (*move_func[num_movement_types])(character_t *, pair_t) = {
+void (*move_func[num_movement_types])(character *, pair) = {
     move_hiker_func,
     move_rival_func,
     move_pacer_func,
@@ -582,7 +619,7 @@ void (*move_func[num_movement_types])(character_t *, pair_t) = {
     move_pc_func,
 };
 
-void rand_pos(pair_t pos)
+void rand_pos(pair pos)
 {
   pos[dim_x] = (rand() % (MAP_X - 2)) + 1;
   pos[dim_y] = (rand() % (MAP_Y - 2)) + 1;
@@ -590,8 +627,8 @@ void rand_pos(pair_t pos)
 
 void new_hiker()
 {
-  pair_t pos;
-  character_t *c;
+  pair pos;
+  character *c;
 
   do
   {
@@ -599,8 +636,8 @@ void new_hiker()
   } while (world.hiker_dist[pos[dim_y]][pos[dim_x]] >= DIJKSTRA_PATH_MAX ||
            world.cur_map->cmap[pos[dim_y]][pos[dim_x]]);
 
-  c = malloc(sizeof(*c));
-  c->npc = malloc(sizeof(*c->npc));
+  c = (character*)malloc(sizeof(character));
+  c->npc = (npc*)malloc(sizeof(npc));
   c->pos[dim_y] = pos[dim_y];
   c->pos[dim_x] = pos[dim_x];
   c->npc->ctype = char_hiker;
@@ -616,8 +653,8 @@ void new_hiker()
 
 void new_rival()
 {
-  pair_t pos;
-  character_t *c;
+  pair pos;
+  character *c;
 
   do
   {
@@ -626,8 +663,8 @@ void new_rival()
            world.rival_dist[pos[dim_y]][pos[dim_x]] < 0 ||
            world.cur_map->cmap[pos[dim_y]][pos[dim_x]]);
 
-  c = malloc(sizeof(*c));
-  c->npc = malloc(sizeof(*c->npc));
+  c = (character*)malloc(sizeof(character));
+  c->npc = (npc*)malloc(sizeof(npc));
   c->pos[dim_y] = pos[dim_y];
   c->pos[dim_x] = pos[dim_x];
   c->npc->ctype = char_rival;
@@ -643,8 +680,8 @@ void new_rival()
 
 void new_swimmer()
 {
-  pair_t pos;
-  character_t *c;
+  pair pos;
+  character *c;
 
   do
   {
@@ -652,8 +689,8 @@ void new_swimmer()
   } while (world.cur_map->map[pos[dim_y]][pos[dim_x]] != ter_water ||
            world.cur_map->cmap[pos[dim_y]][pos[dim_x]]);
 
-  c = malloc(sizeof(*c));
-  c->npc = malloc(sizeof(*c->npc));
+  c = (character*)malloc(sizeof(character));
+  c->npc = (npc*)malloc(sizeof(npc));
   c->pos[dim_y] = pos[dim_y];
   c->pos[dim_x] = pos[dim_x];
   c->npc->ctype = char_swimmer;
@@ -668,8 +705,8 @@ void new_swimmer()
 
 void new_char_other()
 {
-  pair_t pos;
-  character_t *c;
+  pair pos;
+  character *c;
 
   do
   {
@@ -678,8 +715,8 @@ void new_char_other()
            world.rival_dist[pos[dim_y]][pos[dim_x]] < 0 ||
            world.cur_map->cmap[pos[dim_y]][pos[dim_x]]);
 
-  c = malloc(sizeof(*c));
-  c->npc = malloc(sizeof(*c->npc));
+  c = (character*)malloc(sizeof(character));
+  c->npc = (npc*)malloc(sizeof(npc));
   c->pos[dim_y] = pos[dim_y];
   c->pos[dim_x] = pos[dim_x];
   c->npc->ctype = char_other;
@@ -743,12 +780,12 @@ void place_characters()
 
 int32_t cmp_char_turns(const void *key, const void *with)
 {
-  return ((((character_t *)key)->next_turn ==
-           ((character_t *)with)->next_turn)
-              ? (((character_t *)key)->seq_num -
-                 ((character_t *)with)->seq_num)
-              : (((character_t *)key)->next_turn -
-                 ((character_t *)with)->next_turn));
+  return ((((character *)key)->next_turn ==
+           ((character *)with)->next_turn)
+              ? (((character *)key)->seq_num -
+                 ((character *)with)->seq_num)
+              : (((character *)key)->next_turn -
+                 ((character *)with)->next_turn));
 }
 
 void delete_character(void *v)
@@ -759,7 +796,7 @@ void delete_character(void *v)
   }
   else
   {
-    free(((character_t *)v)->npc);
+    free(((character *)v)->npc);
     free(v);
   }
 }
@@ -777,7 +814,7 @@ void init_pc()
   world.pc.pos[dim_x] = x;
   world.pc.pos[dim_y] = y;
   world.pc.symbol = PC_SYMBOL;
-  world.pc.pc = malloc(sizeof(*world.pc.pc));
+  world.pc.pc = (pc*)malloc(sizeof(pc));
 
   world.cur_map->cmap[y][x] = &world.pc;
   world.pc.next_turn = 0;
@@ -797,12 +834,12 @@ static int32_t edge_penalty(int8_t x, int8_t y)
   return (x == 1 || y == 1 || x == MAP_X - 2 || y == MAP_Y - 2) ? 2 : 1;
 }
 
-static void dijkstra_path(map_t *m, pair_t from, pair_t to)
+static void dijkstra_path(map *m, pair from, pair to)
 {
   static path_t path[MAP_Y][MAP_X], *p;
   static uint32_t initialized = 0;
   heap_t h;
-  uint32_t x, y;
+  int16_t x, y;
 
   if (!initialized)
   {
@@ -837,7 +874,7 @@ static void dijkstra_path(map_t *m, pair_t from, pair_t to)
     }
   }
 
-  while ((p = heap_remove_min(&h)))
+  while ((p = (path_t *) heap_remove_min(&h)))
   {
     p->hn = NULL;
 
@@ -917,9 +954,9 @@ static void dijkstra_path(map_t *m, pair_t from, pair_t to)
   }
 }
 
-static int build_paths(map_t *m)
+static int build_paths(map *m)
 {
-  pair_t from, to;
+  pair from, to;
 
   /*  printw("%d %d %d %d\n", m->n, m->s, m->e, m->w);*/
 
@@ -1033,7 +1070,7 @@ static int gaussian[5][5] = {
     {4, 16, 26, 16, 4},
     {1, 4, 7, 4, 1}};
 
-static int smooth_height(map_t *m)
+static int smooth_height(map *m)
 {
   int32_t i, x, y;
   int32_t s, t, p, q;
@@ -1054,11 +1091,11 @@ static int smooth_height(map_t *m)
     height[y][x] = i;
     if (i == 1)
     {
-      head = tail = malloc(sizeof(*tail));
+      head = tail = (queue_node_t *)malloc(sizeof(queue_node_t ));
     }
     else
     {
-      tail->next = malloc(sizeof(*tail));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
       tail = tail->next;
     }
     tail->next = NULL;
@@ -1083,7 +1120,7 @@ static int smooth_height(map_t *m)
     if (x - 1 >= 0 && y - 1 >= 0 && !height[y - 1][x - 1])
     {
       height[y - 1][x - 1] = i;
-      tail->next = malloc(sizeof(*tail));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x - 1;
@@ -1092,7 +1129,7 @@ static int smooth_height(map_t *m)
     if (x - 1 >= 0 && !height[y][x - 1])
     {
       height[y][x - 1] = i;
-      tail->next = malloc(sizeof(*tail));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x - 1;
@@ -1101,7 +1138,7 @@ static int smooth_height(map_t *m)
     if (x - 1 >= 0 && y + 1 < MAP_Y && !height[y + 1][x - 1])
     {
       height[y + 1][x - 1] = i;
-      tail->next = malloc(sizeof(*tail));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x - 1;
@@ -1110,7 +1147,7 @@ static int smooth_height(map_t *m)
     if (y - 1 >= 0 && !height[y - 1][x])
     {
       height[y - 1][x] = i;
-      tail->next = malloc(sizeof(*tail));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x;
@@ -1119,7 +1156,7 @@ static int smooth_height(map_t *m)
     if (y + 1 < MAP_Y && !height[y + 1][x])
     {
       height[y + 1][x] = i;
-      tail->next = malloc(sizeof(*tail));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x;
@@ -1128,7 +1165,7 @@ static int smooth_height(map_t *m)
     if (x + 1 < MAP_X && y - 1 >= 0 && !height[y - 1][x + 1])
     {
       height[y - 1][x + 1] = i;
-      tail->next = malloc(sizeof(*tail));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x + 1;
@@ -1137,7 +1174,7 @@ static int smooth_height(map_t *m)
     if (x + 1 < MAP_X && !height[y][x + 1])
     {
       height[y][x + 1] = i;
-      tail->next = malloc(sizeof(*tail));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x + 1;
@@ -1146,7 +1183,7 @@ static int smooth_height(map_t *m)
     if (x + 1 < MAP_X && y + 1 < MAP_Y && !height[y + 1][x + 1])
     {
       height[y + 1][x + 1] = i;
-      tail->next = malloc(sizeof(*tail));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x + 1;
@@ -1214,7 +1251,7 @@ static int smooth_height(map_t *m)
   return 0;
 }
 
-static void find_building_location(map_t *m, pair_t p)
+static void find_building_location(map *m, pair p)
 {
   do
   {
@@ -1247,9 +1284,9 @@ static void find_building_location(map_t *m, pair_t p)
   } while (1);
 }
 
-static int place_pokemart(map_t *m)
+static int place_pokemart(map *m)
 {
-  pair_t p;
+  pair p;
 
   find_building_location(m, p);
 
@@ -1261,9 +1298,9 @@ static int place_pokemart(map_t *m)
   return 0;
 }
 
-static int place_center(map_t *m)
+static int place_center(map *m)
 {
-  pair_t p;
+  pair p;
 
   find_building_location(m, p);
 
@@ -1277,7 +1314,7 @@ static int place_center(map_t *m)
 
 /* Chooses tree or boulder for border cell.  Choice is biased by dominance *
  * of neighboring cells.                                                   */
-static terrain_type_t border_type(map_t *m, int32_t x, int32_t y)
+static terrain_type border_type(map *m, int32_t x, int32_t y)
 {
   int32_t p, q;
   int32_t r, t;
@@ -1338,13 +1375,13 @@ static terrain_type_t border_type(map_t *m, int32_t x, int32_t y)
   }
 }
 
-static int map_terrain(map_t *m, int8_t n, int8_t s, int8_t e, int8_t w)
+static int maperrain(map *m, int8_t n, int8_t s, int8_t e, int8_t w)
 {
   int32_t i, x, y;
   queue_node_t *head, *tail, *tmp;
   //  FILE *out;
   int num_grass, num_clearing, num_mountain, num_forest, num_water, num_total;
-  terrain_type_t type;
+  terrain_type type;
   int added_current = 0;
 
   num_grass = rand() % 4 + 2;
@@ -1387,11 +1424,11 @@ static int map_terrain(map_t *m, int8_t n, int8_t s, int8_t e, int8_t w)
     m->map[y][x] = type;
     if (i == 0)
     {
-      head = tail = malloc(sizeof(*tail));
+      head = tail = (queue_node_t *)malloc(sizeof(queue_node_t ));
     }
     else
     {
-      tail->next = malloc(sizeof(*tail));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
       tail = tail->next;
     }
     tail->next = NULL;
@@ -1411,14 +1448,14 @@ static int map_terrain(map_t *m, int8_t n, int8_t s, int8_t e, int8_t w)
   {
     x = head->x;
     y = head->y;
-    i = m->map[y][x];
+    terrain_type i = m->map[y][x];
 
     if (x - 1 >= 0 && !m->map[y][x - 1])
     {
       if ((rand() % 100) < 80)
       {
         m->map[y][x - 1] = i;
-        tail->next = malloc(sizeof(*tail));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x - 1;
@@ -1428,7 +1465,7 @@ static int map_terrain(map_t *m, int8_t n, int8_t s, int8_t e, int8_t w)
       {
         added_current = 1;
         m->map[y][x] = i;
-        tail->next = malloc(sizeof(*tail));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x;
@@ -1441,7 +1478,7 @@ static int map_terrain(map_t *m, int8_t n, int8_t s, int8_t e, int8_t w)
       if ((rand() % 100) < 20)
       {
         m->map[y - 1][x] = i;
-        tail->next = malloc(sizeof(*tail));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x;
@@ -1451,7 +1488,7 @@ static int map_terrain(map_t *m, int8_t n, int8_t s, int8_t e, int8_t w)
       {
         added_current = 1;
         m->map[y][x] = i;
-        tail->next = malloc(sizeof(*tail));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x;
@@ -1464,7 +1501,7 @@ static int map_terrain(map_t *m, int8_t n, int8_t s, int8_t e, int8_t w)
       if ((rand() % 100) < 20)
       {
         m->map[y + 1][x] = i;
-        tail->next = malloc(sizeof(*tail));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x;
@@ -1474,7 +1511,7 @@ static int map_terrain(map_t *m, int8_t n, int8_t s, int8_t e, int8_t w)
       {
         added_current = 1;
         m->map[y][x] = i;
-        tail->next = malloc(sizeof(*tail));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x;
@@ -1487,7 +1524,7 @@ static int map_terrain(map_t *m, int8_t n, int8_t s, int8_t e, int8_t w)
       if ((rand() % 100) < 80)
       {
         m->map[y][x + 1] = i;
-        tail->next = malloc(sizeof(*tail));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x + 1;
@@ -1497,7 +1534,7 @@ static int map_terrain(map_t *m, int8_t n, int8_t s, int8_t e, int8_t w)
       {
         added_current = 1;
         m->map[y][x] = i;
-        tail->next = malloc(sizeof(*tail));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x;
@@ -1559,7 +1596,7 @@ static int map_terrain(map_t *m, int8_t n, int8_t s, int8_t e, int8_t w)
   return 0;
 }
 
-static int place_boulders(map_t *m)
+static int place_boulders(map *m)
 {
   int i;
   int x, y;
@@ -1579,7 +1616,7 @@ static int place_boulders(map_t *m)
   return 0;
 }
 
-static int place_trees(map_t *m)
+static int place_trees(map *m)
 {
   int i;
   int x, y;
@@ -1617,7 +1654,7 @@ static int new_map()
 
   world.cur_map =
       world.world[world.cur_idx[dim_y]][world.cur_idx[dim_x]] =
-          malloc(sizeof(*world.cur_map));
+          (map*)malloc(sizeof(map));
 
   smooth_height(world.cur_map);
 
@@ -1670,7 +1707,7 @@ static int new_map()
     e = 1 + rand() % (MAP_Y - 2);
   }
 
-  map_terrain(world.cur_map, n, s, e, w);
+  maperrain(world.cur_map, n, s, e, w);
 
   place_boulders(world.cur_map);
   place_trees(world.cur_map);
@@ -1816,7 +1853,7 @@ static int32_t rival_cmp(const void *key, const void *with)
                           [((path_t *)with)->pos[dim_x]]);
 }
 
-void pathfind(map_t *m)
+void pathfind(map *m)
 {
   heap_t h;
   uint32_t x, y;
@@ -1863,7 +1900,7 @@ void pathfind(map_t *m)
     }
   }
 
-  while ((c = heap_remove_min(&h)))
+  while ((c = (path_t *) heap_remove_min(&h)))
   {
     c->hn = NULL;
     if ((p[c->pos[dim_y] - 1][c->pos[dim_x] - 1].hn) &&
@@ -1974,7 +2011,7 @@ void pathfind(map_t *m)
     }
   }
 
-  while ((c = heap_remove_min(&h)))
+  while ((c = (path_t *) heap_remove_min(&h)))
   {
     c->hn = NULL;
     if ((p[c->pos[dim_y] - 1][c->pos[dim_x] - 1].hn) &&
@@ -2112,13 +2149,13 @@ void print_rival_dist()
   }
 }
 
-void print_character(character_t *c)
+void print_character(character *c)
 {
   printw("%c: <%d,%d> %d (%d)\n", c->symbol, c->pos[dim_x],
          c->pos[dim_y], c->next_turn, c->seq_num);
 }
 
-bool handle_movement_input(character_t *c, pair_t d, int i)
+bool handle_movement_input(character *c, pair d, int i)
 {
   bool selected_movement = false;
   bool override = false;
@@ -2181,7 +2218,7 @@ bool handle_movement_input(character_t *c, pair_t d, int i)
   }
   
   if (selected_movement) {
-    pair_t cur_pos;
+    pair cur_pos;
     cur_pos[dim_y] = c->pos[dim_y];
     cur_pos[dim_x] = c->pos[dim_x];
 
@@ -2243,9 +2280,12 @@ void display_info_menu(char *t, char **d)
 }
 
 int trainer_menu_buffer = 0;
-int handle_menu_input(character_t *c, int i)
+bool set_fly_x = false, set_fly_y = false;
+bool neg_x = false, neg_y = false;
+int fly_x = 0, fly_y = 0, fly_x_amount_set = 0, fly_y_amount_set = 0;
+int handle_menu_input(character *c, int i)
 {
-  map_t *m = world.cur_map;
+  map *m = world.cur_map;
   char current_pos = m->map[c->pos[dim_y]][c->pos[dim_x]];
 
   bool menu_open = false;
@@ -2253,34 +2293,34 @@ int handle_menu_input(character_t *c, int i)
 
   if (i == '>') {
     if (current_pos == ter_mart) {
-      char *title = "Welcome to the Pokemart!";
-      char *description[] = {"Coming Soon!", NULL};
+      char *title = const_cast<char *>("Welcome to the Pokemart!");
+      char *description[] = {const_cast<char *>("Coming Soon!"), NULL};
       display_info_menu(title, description);
       menu_open = true;
       menu_type = 'P';
     } else if (current_pos == ter_center) {
-      char *title = "Welcome to the Pokecenter!";
-      char *description[] = {"Coming Soon!", NULL};
+      char *title = const_cast<char *>("Welcome to the Pokecenter!");
+      char *description[] = {const_cast<char *>("Coming Soon!"), NULL};
       display_info_menu(title, description);
       menu_open = true;
       menu_type = 'P';
     }
   } else if (i == 't') {
-    char *title = "Trainer List.";
+    char *title = const_cast<char *>("Trainer List.");
     char *description[trainer_count + 1];
     int index = 0;
     size_t DESCRIPTION_SIZE = 45;
     for (int y = 0; y < MAP_Y; y++) {
       for (int x = 0; x < MAP_X; x++) {
         if (m->cmap[y][x] != NULL && m->cmap[y][x]->symbol != PC_SYMBOL) {
-          description[index] = malloc(DESCRIPTION_SIZE * sizeof(char));
+          description[index] = (char*)malloc(DESCRIPTION_SIZE * sizeof(char));
           if (description[index] == NULL) {
             exit(EXIT_FAILURE);
           }
           int dist_y = c->pos[dim_y] - y;
           int dist_x = c->pos[dim_x] - x;
-          char *north_south = dist_y < 0 ? "south" : "north";
-          char *east_west = dist_x < 0 ? "west" : "east";
+          const char* north_south = dist_y < 0 ? "south" : "north";
+          const char* east_west = dist_x < 0 ? "west" : "east";
           snprintf(description[index], DESCRIPTION_SIZE, "%02d  |  %c  %d %s, %d %s", (index), m->cmap[y][x]->symbol, abs(dist_y), north_south, abs(dist_x), east_west);
           index++;
         }
@@ -2296,27 +2336,100 @@ int handle_menu_input(character_t *c, int i)
     display_info_menu(title, description);
     menu_open = true;
     menu_type = 'T';
+  } else if (i == 'f') {
+    char *title = const_cast<char *>("Fly Mode! (Write left to right)");
+    char *description[4];
+    description[0] = (char*)malloc(46 * sizeof(char));
+    snprintf(description[0], 46, "Current World Pos: (%03d, %03d)", (world.cur_idx[dim_x] - 200), (world.cur_idx[dim_y] - 200));
+    description[1] = (char*)malloc(36 * sizeof(char));
+    snprintf(description[1], 36, "X: %c%03d  |  Y: %c%03d", (neg_x ? '-' : ' '), fly_x, (neg_y ? '-' : ' '), fly_y);
+    description[2] = const_cast<char *>("Press Enter when done.");
+    description[3] = NULL;
+    display_info_menu(title, description);
+    menu_open = true;
+    menu_type = 'F';
   }
 
-  bool update_trainer_menu = false;
+  bool update_menu = false;
+  std::string ints = "0123456789";
   if (menu_open) {
   int input;
     do {
       input = getch();
       if (input == 'Q') return input;
       if (input == KEY_DOWN) {
-        update_trainer_menu = true;
+        update_menu = true;
         trainer_menu_buffer = trainer_menu_buffer > trainer_count - 2 ? trainer_menu_buffer : trainer_menu_buffer + 1;
         break;
       } else if (input == KEY_UP) {
-        update_trainer_menu = true;
+        update_menu = true;
         trainer_menu_buffer = trainer_menu_buffer == 0 ? trainer_menu_buffer : trainer_menu_buffer - 1;
         break;
+      } else if (input == '-') {
+        if (fly_x_amount_set == 0) {
+          neg_x = true;
+          update_menu = true;
+          break;
+        }
+        else if (fly_x_amount_set == 3 && fly_y_amount_set == 0) {
+          neg_y = true;
+          update_menu = true;
+          break;
+        }
+      } else if ((int)ints.find((char)input) > -1) {
+        if (set_fly_x && !set_fly_y) { // Setting y
+          switch (fly_y_amount_set) {
+            case 0:
+              fly_y_amount_set = 1;
+              fly_y = (int)ints.find((char)input) * 100;
+              update_menu = true;
+              break;
+            case 1:
+              fly_y_amount_set = 2;
+              fly_y += (int)ints.find((char)input) * 10;
+              update_menu = true;
+              break;
+            case 2:
+              fly_y_amount_set = 3;
+              fly_y += (int)ints.find((char)input);
+              set_fly_y = true;
+              update_menu = true;
+              break;
+          }
+          break;
+        } else if (!set_fly_x) { // Setting x
+          switch (fly_x_amount_set) {
+            case 0:
+              fly_x_amount_set = 1;
+              fly_x = (int)ints.find((char)input) * 100;
+              update_menu = true;
+              break;
+            case 1:
+              fly_x_amount_set = 2;
+              fly_x += (int)ints.find((char)input) * 10;
+              update_menu = true;
+              break;
+            case 2:
+              fly_x_amount_set = 3;
+              fly_x += (int)ints.find((char)input);
+              set_fly_x = true;
+              update_menu = true;
+              break;
+          }
+        }
+        if (update_menu) break;
+      } else if (input == '\n') {
+        if (set_fly_x && set_fly_y) {
+          input = '\x1B';
+          world.cur_idx[dim_x] = (WORLD_SIZE / 2) + (neg_x ? -1 * fly_x : fly_x);
+          world.cur_idx[dim_y] = (WORLD_SIZE / 2) + (neg_y ? -1 * fly_y : fly_y);
+          new_map();
+        }
       }
-    } while ((menu_type == 'T' && input != '\x1B') || (menu_type == 'P' && input != '<'));
+    } while ((menu_type == 'T' && input != '\x1B') || (menu_type == 'P' && input != '<') || (menu_type == 'F' && input != '\x1B'));
     print_map();
   }
-  if (update_trainer_menu) {
+  if (update_menu) {
     i = handle_menu_input(c, i);
   }
   return i;
@@ -2324,14 +2437,14 @@ int handle_menu_input(character_t *c, int i)
 
 void game_loop()
 {
-  character_t *c;
-  pair_t d;
+  character *c;
+  pair d;
 
   bool quit = false;
   int input;
   do
   {
-    c = heap_remove_min(&world.cur_map->turn);
+    c = (character *) heap_remove_min(&world.cur_map->turn);
 
     if (c == &world.pc)
     {
@@ -2340,7 +2453,16 @@ void game_loop()
       bool moved = false;
       while (!moved && input != 'Q') 
       {
+        set_fly_x = false;
+        set_fly_y = false;
+        neg_x = false;
+        neg_y = false;
+        fly_x = 0;
+        fly_y = 0;
+        fly_x_amount_set = 0;
+        fly_y_amount_set = 0;
         trainer_menu_buffer = 0;
+
         input = getch();
         if (input == 'Q') break;
 
