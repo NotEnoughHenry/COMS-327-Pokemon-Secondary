@@ -2419,11 +2419,13 @@ int handle_menu_input(character *c, int i)
         }
         if (update_menu) break;
       } else if (input == '\n') {
-        if (set_fly_x && set_fly_y) {
+        if (set_fly_x && set_fly_y && fly_x <= (WORLD_SIZE / 2) && fly_y <= (WORLD_SIZE / 2)) {
           input = '\x1B';
           world.cur_idx[dim_x] = (WORLD_SIZE / 2) + (neg_x ? -1 * fly_x : fly_x);
           world.cur_idx[dim_y] = (WORLD_SIZE / 2) + (neg_y ? -1 * fly_y : fly_y);
           new_map();
+        } else if (fly_x > (WORLD_SIZE / 2) && fly_y > (WORLD_SIZE / 2)) {
+          input = '\x1B';
         }
       }
     } while ((menu_type == 'T' && input != '\x1B') || (menu_type == 'P' && input != '<') || (menu_type == 'F' && input != '\x1B'));

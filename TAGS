@@ -220,5 +220,5 @@ bool set_fly_x 2283,60403
 bool neg_x 2284,60446
 int fly_x 2285,60481
 int handle_menu_input(2286,60551
-void game_loop(2438,65898
-int main(2488,67098
+void game_loop(2440,66057
+int main(2490,67257
