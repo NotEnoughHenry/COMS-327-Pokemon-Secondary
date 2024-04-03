@@ -42,104 +42,6 @@ typedef struct heap 13,153
   void (*datum_delete)datum_delete17,269
 } heap_t;18,301
 
-loading-csvs.cpp,2780
-typedef struct pokemon_s 19,331
-    int id;20,358
-    std::string identifier;21,370
-    int species_id;22,399
-    int height;23,419
-    int weight;24,435
-    int base_xp;25,451
-    int order;26,468
-    int is_default;27,483
-} pokemon_t;28,503
-typedef struct moves_s 30,517
-    int id;31,542
-    std::string identifier;32,554
-    int generation_id;33,582
-    int type_id;34,605
-    int power;35,622
-    int pp;36,637
-    int accuracy;37,649
-    int priority;38,667
-    int target_id;39,685
-    int damage_class_id;40,704
-    int effect_id;41,729
-    int effect_chance;42,748
-    int contest_type_id;43,771
-    int contest_effect_id;44,796
-    int super_contest_effect_id;45,823
-} moves_t;46,856
-typedef struct pokemon_moves_s 48,868
-    int pokemon_id;49,901
-    int version_group_id;50,921
-    int move_id;51,947
-    int pokemon_move_method_id;52,964
-    int level;53,996
-    int order;54,1011
-} pokemon_moves_t;55,1026
-typedef struct pokemon_species_s 57,1046
-    int id;58,1081
-    std::string identifier;59,1093
-    int generation_id;60,1121
-    int evolves_from_species_id;61,1144
-    int evolution_chain_id;62,1177
-    int color_id;63,1205
-    int shape_id;64,1223
-    int habitat_id;65,1241
-    int gender_rate;66,1261
-    int capture_rate;67,1282
-    int base_happiness;68,1304
-    int is_baby;69,1328
-    int hatch_counter;70,1345
-    int has_gender_differences;71,1368
-    int growth_rate_id;72,1400
-    int forms_switchable;73,1424
-    int is_legendary;74,1450
-    int is_mythical;75,1472
-    int order;76,1493
-    int conquest_order;77,1508
-} pokemon_species_t;78,1532
-typedef struct experience_s 80,1554
-    int growth_rate_id;81,1584
-    int level;82,1608
-    int experience;83,1623
-} experience_t;84,1643
-typedef struct type_names_s 86,1660
-    int type_id;87,1690
-    int local_language_id;88,1707
-    std::string name;89,1734
-} type_names_t;90,1756
-typedef struct pokemon_stats_s 92,1773
-    int pokemon_id;93,1806
-    int stat_id;94,1826
-    int base_stat;95,1843
-    int effort;96,1862
-} pokemon_stats_t;97,1878
-typedef struct stats_s 99,1898
-    int id;100,1923
-    int damage_class_id;101,1935
-    std::string identifier;102,1960
-    int is_battle_only;103,1988
-    int game_index;104,2012
-} stats_t;105,2032
-typedef struct pokemon_types_s 107,2044
-    int pokemon_id;108,2077
-    int type_id;109,2097
-    int slot;110,2114
-} pokemon_types_t;111,2128
-bool csv_isPokemon 113,2148
-bool csv_isMoves 114,2176
-bool csv_isPokemonMoves 115,2202
-bool csv_isPokemonSpecies 116,2235
-bool csv_isExperience 117,2270
-bool csv_isTypeNames 118,2301
-bool csv_isPokemonStats 119,2331
-bool csv_isStats 120,2364
-bool csv_isPokemonTypes 121,2390
-void* data;122,2423
-int main(124,2436
-
 poke327.cpp,7966
 #define malloc(21,350
 typedef class path27,494
@@ -415,4 +317,4 @@ int fly_x 2429,62502
 int handle_menu_input(2430,62572
 void game_loop(2622,68245
 int handleFileInput(2677,69485
-int main(2980,80576
+int main(2974,80420

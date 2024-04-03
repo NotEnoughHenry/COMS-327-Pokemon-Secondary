@@ -5,8 +5,8 @@ RM = rm -f
 
 TERM = "S2024"
 
-CFLAGS = -Wall -Werror -ggdb -funroll-loops -DTERM=$(TERM)
-CXXFLAGS = -Wall -Werror -ggdb -funroll-loops -DTERM=$(TERM)
+CFLAGS = -Wall -Werror -ggdb -funroll-loops -Wno-error=unused-but-set-variable -DTERM=$(TERM)
+CXXFLAGS = -Wall -Werror -ggdb -funroll-loops -Wno-error=unused-but-set-variable -DTERM=$(TERM)
 
 LDFLAGS = -lncurses
 

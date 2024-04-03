@@ -2752,7 +2752,7 @@ int handleFileInput(std::string fileName)
   file.seekg(0, std::ios::beg);
 
   bool firstRun = true;
-  int expectedColumns = 0;
+  int expectedTokenCount = 0;
   int index = 0;
   while (std::getline(file, line))
   {
@@ -2766,7 +2766,7 @@ int handleFileInput(std::string fileName)
     {
       if (firstRun)
       {
-        expectedColumns++;
+        expectedTokenCount++;
       }
       else
       {
@@ -2782,12 +2782,11 @@ int handleFileInput(std::string fileName)
       }
     }
 
-    while (!firstRun && count != expectedColumns)
+    while (!firstRun && count != expectedTokenCount)
     {
       tokens.push_back("");
       count++;
     }
-    int tokenCount;
     if (csv_isPokemon)
     {
       try
@@ -2801,7 +2800,6 @@ int handleFileInput(std::string fileName)
         pokemonData[index].base_xp = tokens[5] == "" ? INT_MAX : std::stoi(tokens[5]);
         pokemonData[index].order = tokens[6] == "" ? INT_MAX : std::stoi(tokens[6]);
         pokemonData[index].is_default = tokens[7] == "" ? INT_MAX : std::stoi(tokens[7]);
-        tokenCount = 8;
       }
       catch (const std::invalid_argument &e)
       {
@@ -2827,7 +2825,6 @@ int handleFileInput(std::string fileName)
         movesData[index].contest_type_id = tokens[11] == "" ? INT_MAX : std::stoi(tokens[11]);
         movesData[index].contest_effect_id = tokens[12] == "" ? INT_MAX : std::stoi(tokens[12]);
         movesData[index].super_contest_effect_id = tokens[13] == "" ? INT_MAX : std::stoi(tokens[13]);
-        tokenCount = 14;
       }
       catch (const std::invalid_argument &e)
       {
@@ -2845,7 +2842,6 @@ int handleFileInput(std::string fileName)
         pokemonMovesData[index].pokemon_move_method_id = tokens[3] == "" ? INT_MAX : std::stoi(tokens[3]);
         pokemonMovesData[index].level = tokens[4] == "" ? INT_MAX : std::stoi(tokens[4]);
         pokemonMovesData[index].order = tokens[5] == "" ? INT_MAX : std::stoi(tokens[5]);
-        tokenCount = 6;
       }
       catch (const std::invalid_argument &e)
       {
@@ -2877,7 +2873,6 @@ int handleFileInput(std::string fileName)
         pokemonSpeciesData[index].is_mythical = tokens[17] == "" ? INT_MAX : std::stoi(tokens[17]);
         pokemonSpeciesData[index].order = tokens[18] == "" ? INT_MAX : std::stoi(tokens[18]);
         pokemonSpeciesData[index].conquest_order = tokens[19] == "" ? INT_MAX : std::stoi(tokens[19]);
-        tokenCount = 20;
       }
       catch (const std::invalid_argument &e)
       {
@@ -2892,7 +2887,6 @@ int handleFileInput(std::string fileName)
         experienceData[index].growth_rate_id = tokens[0] == "" ? INT_MAX : std::stoi(tokens[0]);
         experienceData[index].level = tokens[1] == "" ? INT_MAX : std::stoi(tokens[1]);
         experienceData[index].experience = tokens[2] == "" ? INT_MAX : std::stoi(tokens[2]);
-        tokenCount = 3;
       }
       catch (const std::invalid_argument &e)
       {
@@ -2907,7 +2901,6 @@ int handleFileInput(std::string fileName)
         typeNamesData[index].type_id = tokens[0] == "" ? INT_MAX : std::stoi(tokens[0]);
         typeNamesData[index].local_language_id = tokens[1] == "" ? INT_MAX : std::stoi(tokens[1]);
         typeNamesData[index].name = (tokens[2]);
-        tokenCount = 3;
       }
       catch (const std::invalid_argument &e)
       {
@@ -2923,7 +2916,6 @@ int handleFileInput(std::string fileName)
         pokemonStatsData[index].stat_id = tokens[1] == "" ? INT_MAX : std::stoi(tokens[1]);
         pokemonStatsData[index].base_stat = tokens[2] == "" ? INT_MAX : std::stoi(tokens[2]);
         pokemonStatsData[index].effort = tokens[3] == "" ? INT_MAX : std::stoi(tokens[3]);
-        tokenCount = 4;
       }
       catch (const std::invalid_argument &e)
       {
@@ -2940,7 +2932,6 @@ int handleFileInput(std::string fileName)
         statsData[index].identifier = (tokens[2]);
         statsData[index].is_battle_only = tokens[3] == "" ? INT_MAX : std::stoi(tokens[3]);
         statsData[index].game_index = tokens[4] == "" ? INT_MAX : std::stoi(tokens[4]);
-        tokenCount = 5;
       }
       catch (const std::invalid_argument &e)
       {
@@ -2955,19 +2946,22 @@ int handleFileInput(std::string fileName)
         pokemonTypesData[index].pokemon_id = tokens[0] == "" ? INT_MAX : std::stoi(tokens[0]);
         pokemonTypesData[index].type_id = tokens[1] == "" ? INT_MAX : std::stoi(tokens[1]);
         pokemonTypesData[index].slot = tokens[2] == "" ? INT_MAX : std::stoi(tokens[2]);
-        tokenCount = 3;
       }
       catch (const std::invalid_argument &e)
       {
         index--;
       }
     }
-
-    for (int j = 0; j < tokenCount; j++) {
-      std::cout << tokens[j];
-      if (j < tokenCount - 1) std::cout << std::string(", ");
+    if (index != -1)
+    {
+      for (int j = 0; j < expectedTokenCount; j++)
+      {
+        std::cout << tokens[j];
+        if (j < expectedTokenCount - 1)
+          std::cout << std::string(",");
+      }
+      std::cout << std::endl;
     }
-    std::cout << std::endl;
 
     firstRun = false;
     index++;
