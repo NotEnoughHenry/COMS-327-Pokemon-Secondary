@@ -9,6 +9,12 @@
 #include <ncurses.h>
 #include <cstdlib>
 #include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <iostream>
+#include <any>
+#include <typeinfo>
 
 #include "heap.h"
 
@@ -20,7 +26,7 @@
 
 typedef class path
 {
-  public:
+public:
   heap_node_t *hn;
   uint8_t pos[2];
   uint8_t from[2];
@@ -119,12 +125,12 @@ typedef enum __attribute__((__packed__)) characterype
 
 typedef class pc
 {
-  public:
+public:
 } pc_t;
 
 typedef class npc
 {
-  public:
+public:
   characterype_t ctype;
   movement_type_t mtype;
   pair dir;
@@ -132,7 +138,7 @@ typedef class npc
 
 typedef class character
 {
-  public:
+public:
   npc_t *npc;
   pc_t *pc;
   pair pos;
@@ -143,7 +149,7 @@ typedef class character
 
 typedef class map
 {
-  public:
+public:
   terrain_type map[MAP_Y][MAP_X];
   uint8_t height[MAP_Y][MAP_X];
   character *cmap[MAP_Y][MAP_X];
@@ -153,14 +159,128 @@ typedef class map
 
 typedef class queue_node
 {
-  public:
+public:
   int x, y;
   struct queue_node *next;
 } queue_node_t;
 
+bool csv_isPokemon = false;
+bool csv_isMoves = false;
+bool csv_isPokemonMoves = false;
+bool csv_isPokemonSpecies = false;
+bool csv_isExperience = false;
+bool csv_isTypeNames = false;
+bool csv_isPokemonStats = false;
+bool csv_isStats = false;
+bool csv_isPokemonTypes = false;
+void *data;
+
+typedef struct pokemon_s
+{
+  int id;
+  std::string identifier;
+  int species_id;
+  int height;
+  int weight;
+  int base_xp;
+  int order;
+  int is_default;
+} pokemon_t;
+
+typedef struct moves_s
+{
+  int id;
+  std::string identifier;
+  int generation_id;
+  int type_id;
+  int power;
+  int pp;
+  int accuracy;
+  int priority;
+  int target_id;
+  int damage_class_id;
+  int effect_id;
+  int effect_chance;
+  int contest_type_id;
+  int contest_effect_id;
+  int super_contest_effect_id;
+} moves_t;
+
+typedef struct pokemon_moves_s
+{
+  int pokemon_id;
+  int version_group_id;
+  int move_id;
+  int pokemon_move_method_id;
+  int level;
+  int order;
+} pokemon_moves_t;
+
+typedef struct pokemon_species_s
+{
+  int id;
+  std::string identifier;
+  int generation_id;
+  int evolves_from_species_id;
+  int evolution_chain_id;
+  int color_id;
+  int shape_id;
+  int habitat_id;
+  int gender_rate;
+  int capture_rate;
+  int base_happiness;
+  int is_baby;
+  int hatch_counter;
+  int has_gender_differences;
+  int growth_rate_id;
+  int forms_switchable;
+  int is_legendary;
+  int is_mythical;
+  int order;
+  int conquest_order;
+} pokemon_species_t;
+
+typedef struct experience_s
+{
+  int growth_rate_id;
+  int level;
+  int experience;
+} experience_t;
+
+typedef struct type_names_s
+{
+  int type_id;
+  int local_language_id;
+  std::string name;
+} type_names_t;
+
+typedef struct pokemon_stats_s
+{
+  int pokemon_id;
+  int stat_id;
+  int base_stat;
+  int effort;
+} pokemon_stats_t;
+
+typedef struct stats_s
+{
+  int id;
+  int damage_class_id;
+  std::string identifier;
+  int is_battle_only;
+  int game_index;
+} stats_t;
+
+typedef struct pokemon_types_s
+{
+  int pokemon_id;
+  int type_id;
+  int slot;
+} pokemon_types_t;
+
 typedef class world
 {
-  public:
+public:
   map *world[WORLD_SIZE][WORLD_SIZE];
   pair cur_idx;
   map *cur_map;
@@ -499,7 +619,7 @@ static void move_swimmer_func(character *c, pair dest)
         ((m->map[dest[dim_y] + dir[dim_y]]
                 [dest[dim_x] + dir[dim_x]] == ter_path) &&
          is_adjacent(((pair){(dest[dim_x] + dir[dim_x]),
-                               (dest[dim_y] + dir[dim_y])}),
+                             (dest[dim_y] + dir[dim_y])}),
                      ter_water)))
     {
       dest[dim_x] += dir[dim_x];
@@ -508,7 +628,7 @@ static void move_swimmer_func(character *c, pair dest)
     else if ((m->map[dest[dim_y]][dest[dim_x] + dir[dim_x]] == ter_water) ||
              ((m->map[dest[dim_y]][dest[dim_x] + dir[dim_x]] == ter_path) &&
               is_adjacent(((pair){(dest[dim_x] + dir[dim_x]),
-                                    (dest[dim_y])}),
+                                  (dest[dim_y])}),
                           ter_water)))
     {
       dest[dim_x] += dir[dim_x];
@@ -516,7 +636,7 @@ static void move_swimmer_func(character *c, pair dest)
     else if ((m->map[dest[dim_y] + dir[dim_y]][dest[dim_x]] == ter_water) ||
              ((m->map[dest[dim_y] + dir[dim_y]][dest[dim_x]] == ter_path) &&
               is_adjacent(((pair){(dest[dim_x]),
-                                    (dest[dim_y] + dir[dim_y])}),
+                                  (dest[dim_y] + dir[dim_y])}),
                           ter_water)))
     {
       dest[dim_y] += dir[dim_y];
@@ -532,7 +652,7 @@ static void move_swimmer_func(character *c, pair dest)
         !((m->map[dest[dim_y] + dir[dim_y]]
                  [dest[dim_x] + dir[dim_x]] == ter_path) &&
           is_adjacent(((pair){dest[dim_x] + dir[dim_x],
-                                dest[dim_y] + dir[dim_y]}),
+                              dest[dim_y] + dir[dim_y]}),
                       ter_water)))
     {
       rand_dir(dir);
@@ -543,7 +663,7 @@ static void move_swimmer_func(character *c, pair dest)
         ((m->map[dest[dim_y] + dir[dim_y]]
                 [dest[dim_x] + dir[dim_x]] == ter_path) &&
          is_adjacent(((pair){dest[dim_x] + dir[dim_x],
-                               dest[dim_y] + dir[dim_y]}),
+                             dest[dim_y] + dir[dim_y]}),
                      ter_water)))
     {
       dest[dim_x] += dir[dim_x];
@@ -563,24 +683,36 @@ static void move_pc_func(character *c, pair dest)
 {
   map *m = world.cur_map;
 
-  if (m->map[dest[dim_y]][dest[dim_x]] == ter_gate) {
-    if (dest[dim_x] == 1) {
-      if (world.cur_idx[dim_x] > 0) {
+  if (m->map[dest[dim_y]][dest[dim_x]] == ter_gate)
+  {
+    if (dest[dim_x] == 1)
+    {
+      if (world.cur_idx[dim_x] > 0)
+      {
         world.cur_idx[dim_x] = world.cur_idx[dim_x] - 1;
         dest[dim_x] = MAP_X - 3;
       }
-    } else if (dest[dim_x] == (MAP_X - 2)) {
-      if (world.cur_idx[dim_x] < WORLD_SIZE) {
+    }
+    else if (dest[dim_x] == (MAP_X - 2))
+    {
+      if (world.cur_idx[dim_x] < WORLD_SIZE)
+      {
         world.cur_idx[dim_x] = world.cur_idx[dim_x] + 1;
         dest[dim_x] = 2;
       }
-    } else if (dest[dim_y] == 1) {
-      if (world.cur_idx[dim_y] > 0) {
+    }
+    else if (dest[dim_y] == 1)
+    {
+      if (world.cur_idx[dim_y] > 0)
+      {
         world.cur_idx[dim_y] = world.cur_idx[dim_y] - 1;
         dest[dim_y] = MAP_Y - 3;
       }
-    } else if (dest[dim_y] == (MAP_Y - 2)) {
-      if (world.cur_idx[dim_y] < WORLD_SIZE) {
+    }
+    else if (dest[dim_y] == (MAP_Y - 2))
+    {
+      if (world.cur_idx[dim_y] < WORLD_SIZE)
+      {
         world.cur_idx[dim_y] = world.cur_idx[dim_y] + 1;
         dest[dim_y] = 2;
       }
@@ -596,13 +728,13 @@ static void move_pc_func(character *c, pair dest)
       m->map[dest[dim_y]][dest[dim_x]] != ter_mart &&
       m->map[dest[dim_y]][dest[dim_x]] != ter_center &&
       m->map[dest[dim_y]][dest[dim_x]] != ter_grass &&
-      m->map[dest[dim_y]][dest[dim_x]] != ter_clearing 
-    )
+      m->map[dest[dim_y]][dest[dim_x]] != ter_clearing)
   {
     dest[dim_x] = c->pos[dim_x];
     dest[dim_y] = c->pos[dim_y];
   }
-  if (m->cmap[dest[dim_y]][dest[dim_x]] != NULL) {
+  if (m->cmap[dest[dim_y]][dest[dim_x]] != NULL)
+  {
     dest[dim_x] = c->pos[dim_x];
     dest[dim_y] = c->pos[dim_y];
   }
@@ -636,8 +768,8 @@ void new_hiker()
   } while (world.hiker_dist[pos[dim_y]][pos[dim_x]] >= DIJKSTRA_PATH_MAX ||
            world.cur_map->cmap[pos[dim_y]][pos[dim_x]]);
 
-  c = (character*)malloc(sizeof(character));
-  c->npc = (npc*)malloc(sizeof(npc));
+  c = (character *)malloc(sizeof(character));
+  c->npc = (npc *)malloc(sizeof(npc));
   c->pos[dim_y] = pos[dim_y];
   c->pos[dim_x] = pos[dim_x];
   c->npc->ctype = char_hiker;
@@ -663,8 +795,8 @@ void new_rival()
            world.rival_dist[pos[dim_y]][pos[dim_x]] < 0 ||
            world.cur_map->cmap[pos[dim_y]][pos[dim_x]]);
 
-  c = (character*)malloc(sizeof(character));
-  c->npc = (npc*)malloc(sizeof(npc));
+  c = (character *)malloc(sizeof(character));
+  c->npc = (npc *)malloc(sizeof(npc));
   c->pos[dim_y] = pos[dim_y];
   c->pos[dim_x] = pos[dim_x];
   c->npc->ctype = char_rival;
@@ -689,8 +821,8 @@ void new_swimmer()
   } while (world.cur_map->map[pos[dim_y]][pos[dim_x]] != ter_water ||
            world.cur_map->cmap[pos[dim_y]][pos[dim_x]]);
 
-  c = (character*)malloc(sizeof(character));
-  c->npc = (npc*)malloc(sizeof(npc));
+  c = (character *)malloc(sizeof(character));
+  c->npc = (npc *)malloc(sizeof(npc));
   c->pos[dim_y] = pos[dim_y];
   c->pos[dim_x] = pos[dim_x];
   c->npc->ctype = char_swimmer;
@@ -715,8 +847,8 @@ void new_char_other()
            world.rival_dist[pos[dim_y]][pos[dim_x]] < 0 ||
            world.cur_map->cmap[pos[dim_y]][pos[dim_x]]);
 
-  c = (character*)malloc(sizeof(character));
-  c->npc = (npc*)malloc(sizeof(npc));
+  c = (character *)malloc(sizeof(character));
+  c->npc = (npc *)malloc(sizeof(npc));
   c->pos[dim_y] = pos[dim_y];
   c->pos[dim_x] = pos[dim_x];
   c->npc->ctype = char_other;
@@ -814,7 +946,7 @@ void init_pc()
   world.pc.pos[dim_x] = x;
   world.pc.pos[dim_y] = y;
   world.pc.symbol = PC_SYMBOL;
-  world.pc.pc = (pc*)malloc(sizeof(pc));
+  world.pc.pc = (pc *)malloc(sizeof(pc));
 
   world.cur_map->cmap[y][x] = &world.pc;
   world.pc.next_turn = 0;
@@ -874,7 +1006,7 @@ static void dijkstra_path(map *m, pair from, pair to)
     }
   }
 
-  while ((p = (path_t *) heap_remove_min(&h)))
+  while ((p = (path_t *)heap_remove_min(&h)))
   {
     p->hn = NULL;
 
@@ -1091,11 +1223,11 @@ static int smooth_height(map *m)
     height[y][x] = i;
     if (i == 1)
     {
-      head = tail = (queue_node_t *)malloc(sizeof(queue_node_t ));
+      head = tail = (queue_node_t *)malloc(sizeof(queue_node_t));
     }
     else
     {
-      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
       tail = tail->next;
     }
     tail->next = NULL;
@@ -1120,7 +1252,7 @@ static int smooth_height(map *m)
     if (x - 1 >= 0 && y - 1 >= 0 && !height[y - 1][x - 1])
     {
       height[y - 1][x - 1] = i;
-      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x - 1;
@@ -1129,7 +1261,7 @@ static int smooth_height(map *m)
     if (x - 1 >= 0 && !height[y][x - 1])
     {
       height[y][x - 1] = i;
-      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x - 1;
@@ -1138,7 +1270,7 @@ static int smooth_height(map *m)
     if (x - 1 >= 0 && y + 1 < MAP_Y && !height[y + 1][x - 1])
     {
       height[y + 1][x - 1] = i;
-      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x - 1;
@@ -1147,7 +1279,7 @@ static int smooth_height(map *m)
     if (y - 1 >= 0 && !height[y - 1][x])
     {
       height[y - 1][x] = i;
-      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x;
@@ -1156,7 +1288,7 @@ static int smooth_height(map *m)
     if (y + 1 < MAP_Y && !height[y + 1][x])
     {
       height[y + 1][x] = i;
-      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x;
@@ -1165,7 +1297,7 @@ static int smooth_height(map *m)
     if (x + 1 < MAP_X && y - 1 >= 0 && !height[y - 1][x + 1])
     {
       height[y - 1][x + 1] = i;
-      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x + 1;
@@ -1174,7 +1306,7 @@ static int smooth_height(map *m)
     if (x + 1 < MAP_X && !height[y][x + 1])
     {
       height[y][x + 1] = i;
-      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x + 1;
@@ -1183,7 +1315,7 @@ static int smooth_height(map *m)
     if (x + 1 < MAP_X && y + 1 < MAP_Y && !height[y + 1][x + 1])
     {
       height[y + 1][x + 1] = i;
-      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
       tail = tail->next;
       tail->next = NULL;
       tail->x = x + 1;
@@ -1424,11 +1556,11 @@ static int maperrain(map *m, int8_t n, int8_t s, int8_t e, int8_t w)
     m->map[y][x] = type;
     if (i == 0)
     {
-      head = tail = (queue_node_t *)malloc(sizeof(queue_node_t ));
+      head = tail = (queue_node_t *)malloc(sizeof(queue_node_t));
     }
     else
     {
-      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+      tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
       tail = tail->next;
     }
     tail->next = NULL;
@@ -1455,7 +1587,7 @@ static int maperrain(map *m, int8_t n, int8_t s, int8_t e, int8_t w)
       if ((rand() % 100) < 80)
       {
         m->map[y][x - 1] = i;
-        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x - 1;
@@ -1465,7 +1597,7 @@ static int maperrain(map *m, int8_t n, int8_t s, int8_t e, int8_t w)
       {
         added_current = 1;
         m->map[y][x] = i;
-        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x;
@@ -1478,7 +1610,7 @@ static int maperrain(map *m, int8_t n, int8_t s, int8_t e, int8_t w)
       if ((rand() % 100) < 20)
       {
         m->map[y - 1][x] = i;
-        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x;
@@ -1488,7 +1620,7 @@ static int maperrain(map *m, int8_t n, int8_t s, int8_t e, int8_t w)
       {
         added_current = 1;
         m->map[y][x] = i;
-        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x;
@@ -1501,7 +1633,7 @@ static int maperrain(map *m, int8_t n, int8_t s, int8_t e, int8_t w)
       if ((rand() % 100) < 20)
       {
         m->map[y + 1][x] = i;
-        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x;
@@ -1511,7 +1643,7 @@ static int maperrain(map *m, int8_t n, int8_t s, int8_t e, int8_t w)
       {
         added_current = 1;
         m->map[y][x] = i;
-        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x;
@@ -1524,7 +1656,7 @@ static int maperrain(map *m, int8_t n, int8_t s, int8_t e, int8_t w)
       if ((rand() % 100) < 80)
       {
         m->map[y][x + 1] = i;
-        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x + 1;
@@ -1534,7 +1666,7 @@ static int maperrain(map *m, int8_t n, int8_t s, int8_t e, int8_t w)
       {
         added_current = 1;
         m->map[y][x] = i;
-        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t ));
+        tail->next = (queue_node_t *)malloc(sizeof(queue_node_t));
         tail = tail->next;
         tail->next = NULL;
         tail->x = x;
@@ -1654,7 +1786,7 @@ static int new_map()
 
   world.cur_map =
       world.world[world.cur_idx[dim_y]][world.cur_idx[dim_x]] =
-          (map*)malloc(sizeof(map));
+          (map *)malloc(sizeof(map));
 
   smooth_height(world.cur_map);
 
@@ -1900,7 +2032,7 @@ void pathfind(map *m)
     }
   }
 
-  while ((c = (path_t *) heap_remove_min(&h)))
+  while ((c = (path_t *)heap_remove_min(&h)))
   {
     c->hn = NULL;
     if ((p[c->pos[dim_y] - 1][c->pos[dim_x] - 1].hn) &&
@@ -2011,7 +2143,7 @@ void pathfind(map *m)
     }
   }
 
-  while ((c = (path_t *) heap_remove_min(&h)))
+  while ((c = (path_t *)heap_remove_min(&h)))
   {
     c->hn = NULL;
     if ((p[c->pos[dim_y] - 1][c->pos[dim_x] - 1].hn) &&
@@ -2159,65 +2291,67 @@ bool handle_movement_input(character *c, pair d, int i)
 {
   bool selected_movement = false;
   bool override = false;
-  switch (i) {
-    case '7':  // 7 or y Attempt to move PC one cell to the upper left.
-    case 'y':
-      d[dim_y] = c->pos[dim_y] + all_dirs[0][dim_y];
-      d[dim_x] = c->pos[dim_x] + all_dirs[0][dim_x];
-      selected_movement = true;
-      break;
-    case '8':  // 8 or k Attempt to move PC one cell up.
-    case 'k':
-      d[dim_y] = c->pos[dim_y] + all_dirs[3][dim_y];
-      d[dim_x] = c->pos[dim_x] + all_dirs[3][dim_x];
-      selected_movement = true;
-      break;
-    case '9':  // 9 or u Attempt to move PC one cell to the upper right.
-    case 'u':
-      d[dim_y] = c->pos[dim_y] + all_dirs[5][dim_y];
-      d[dim_x] = c->pos[dim_x] + all_dirs[5][dim_x];
-      selected_movement = true;
-      break;
-    case '6':  // 6 or l Attempt to move PC one cell to the right.
-    case 'l':
-      d[dim_y] = c->pos[dim_y] + all_dirs[6][dim_y];
-      d[dim_x] = c->pos[dim_x] + all_dirs[6][dim_x];
-      selected_movement = true;
-      break;
-    case '3':  // 3 or n Attempt to move PC one cell to the lower right.
-    case 'n':
-      d[dim_y] = c->pos[dim_y] + all_dirs[7][dim_y];
-      d[dim_x] = c->pos[dim_x] + all_dirs[7][dim_x];
-      selected_movement = true;
-      break;
-    case '2':  // 2 or j Attempt to move PC one cell down.
-    case 'j':
-      d[dim_y] = c->pos[dim_y] + all_dirs[4][dim_y];
-      d[dim_x] = c->pos[dim_x] + all_dirs[4][dim_x];
-      selected_movement = true;
-      break;
-    case '1':  // 1 or b Attempt to move PC one cell to the lower left.
-    case 'b':
-      d[dim_y] = c->pos[dim_y] + all_dirs[2][dim_y];
-      d[dim_x] = c->pos[dim_x] + all_dirs[2][dim_x];
-      selected_movement = true;
-      break;
-    case '4':  // 4 or h Attempt to move PC one cell to the left.
-    case 'h':
-      d[dim_y] = c->pos[dim_y] + all_dirs[1][dim_y];
-      d[dim_x] = c->pos[dim_x] + all_dirs[1][dim_x];
-      selected_movement = true;
-      break;
-    case ' ':
-    case '.':
-    case '5':
-      d[dim_y] = c->pos[dim_y];
-      d[dim_x] = c->pos[dim_x];
-      selected_movement = true;
-      override = true;
+  switch (i)
+  {
+  case '7': // 7 or y Attempt to move PC one cell to the upper left.
+  case 'y':
+    d[dim_y] = c->pos[dim_y] + all_dirs[0][dim_y];
+    d[dim_x] = c->pos[dim_x] + all_dirs[0][dim_x];
+    selected_movement = true;
+    break;
+  case '8': // 8 or k Attempt to move PC one cell up.
+  case 'k':
+    d[dim_y] = c->pos[dim_y] + all_dirs[3][dim_y];
+    d[dim_x] = c->pos[dim_x] + all_dirs[3][dim_x];
+    selected_movement = true;
+    break;
+  case '9': // 9 or u Attempt to move PC one cell to the upper right.
+  case 'u':
+    d[dim_y] = c->pos[dim_y] + all_dirs[5][dim_y];
+    d[dim_x] = c->pos[dim_x] + all_dirs[5][dim_x];
+    selected_movement = true;
+    break;
+  case '6': // 6 or l Attempt to move PC one cell to the right.
+  case 'l':
+    d[dim_y] = c->pos[dim_y] + all_dirs[6][dim_y];
+    d[dim_x] = c->pos[dim_x] + all_dirs[6][dim_x];
+    selected_movement = true;
+    break;
+  case '3': // 3 or n Attempt to move PC one cell to the lower right.
+  case 'n':
+    d[dim_y] = c->pos[dim_y] + all_dirs[7][dim_y];
+    d[dim_x] = c->pos[dim_x] + all_dirs[7][dim_x];
+    selected_movement = true;
+    break;
+  case '2': // 2 or j Attempt to move PC one cell down.
+  case 'j':
+    d[dim_y] = c->pos[dim_y] + all_dirs[4][dim_y];
+    d[dim_x] = c->pos[dim_x] + all_dirs[4][dim_x];
+    selected_movement = true;
+    break;
+  case '1': // 1 or b Attempt to move PC one cell to the lower left.
+  case 'b':
+    d[dim_y] = c->pos[dim_y] + all_dirs[2][dim_y];
+    d[dim_x] = c->pos[dim_x] + all_dirs[2][dim_x];
+    selected_movement = true;
+    break;
+  case '4': // 4 or h Attempt to move PC one cell to the left.
+  case 'h':
+    d[dim_y] = c->pos[dim_y] + all_dirs[1][dim_y];
+    d[dim_x] = c->pos[dim_x] + all_dirs[1][dim_x];
+    selected_movement = true;
+    break;
+  case ' ':
+  case '.':
+  case '5':
+    d[dim_y] = c->pos[dim_y];
+    d[dim_x] = c->pos[dim_x];
+    selected_movement = true;
+    override = true;
   }
-  
-  if (selected_movement) {
+
+  if (selected_movement)
+  {
     pair cur_pos;
     cur_pos[dim_y] = c->pos[dim_y];
     cur_pos[dim_x] = c->pos[dim_x];
@@ -2226,7 +2360,7 @@ bool handle_movement_input(character *c, pair d, int i)
     world.cur_map->cmap[c->pos[dim_y]][c->pos[dim_x]] = NULL;
     world.cur_map->cmap[d[dim_y]][d[dim_x]] = c;
     c->next_turn += move_cost[move_pc][world.cur_map->map[d[dim_y]]
-                                                        [d[dim_x]]];
+                                                         [d[dim_x]]];
 
     c->pos[dim_y] = d[dim_y];
     c->pos[dim_x] = d[dim_x];
@@ -2240,15 +2374,22 @@ void display_info_menu(char *t, char **d)
 {
   const int menu_x = 20, menu_y = 2;
   const int menu_height = 10, menu_width = 40;
-  const char t_border = '-',  w_border = '|', blank = ' ';
+  const char t_border = '-', w_border = '|', blank = ' ';
 
-  for (int i = menu_y; i < menu_y + menu_height; i++) {
-    for (int j = menu_x; j < menu_x + menu_width; j++) {
-      if (j == menu_x || j == menu_x + menu_width - 1) {
+  for (int i = menu_y; i < menu_y + menu_height; i++)
+  {
+    for (int j = menu_x; j < menu_x + menu_width; j++)
+    {
+      if (j == menu_x || j == menu_x + menu_width - 1)
+      {
         mvaddch(i, j, w_border);
-      } else if (i == menu_y || i == menu_y + menu_height - 1) {
+      }
+      else if (i == menu_y || i == menu_y + menu_height - 1)
+      {
         mvaddch(i, j, t_border);
-      } else {
+      }
+      else
+      {
         mvaddch(i, j, blank);
       }
     }
@@ -2261,12 +2402,15 @@ void display_info_menu(char *t, char **d)
 
   // Print Description
   int d_length = 0;
-  while (d[d_length] != NULL) {
+  while (d[d_length] != NULL)
+  {
     d_length++;
   }
 
-  for (int i = 0; i < d_length; i++) {
-    if (curser_y + i + 2 > menu_y + menu_height - 3)  {
+  for (int i = 0; i < d_length; i++)
+  {
+    if (curser_y + i + 2 > menu_y + menu_height - 3)
+    {
       move(curser_y + i + 2, curser_x);
       printw("...");
       move(MAP_Y - 1, MAP_X);
@@ -2291,57 +2435,71 @@ int handle_menu_input(character *c, int i)
   bool menu_open = false;
   char menu_type;
 
-  if (i == '>') {
-    if (current_pos == ter_mart) {
+  if (i == '>')
+  {
+    if (current_pos == ter_mart)
+    {
       char *title = const_cast<char *>("Welcome to the Pokemart!");
       char *description[] = {const_cast<char *>("Coming Soon!"), NULL};
       display_info_menu(title, description);
       menu_open = true;
       menu_type = 'P';
-    } else if (current_pos == ter_center) {
+    }
+    else if (current_pos == ter_center)
+    {
       char *title = const_cast<char *>("Welcome to the Pokecenter!");
       char *description[] = {const_cast<char *>("Coming Soon!"), NULL};
       display_info_menu(title, description);
       menu_open = true;
       menu_type = 'P';
     }
-  } else if (i == 't') {
+  }
+  else if (i == 't')
+  {
     char *title = const_cast<char *>("Trainer List.");
     char *description[trainer_count + 1];
     int index = 0;
     size_t DESCRIPTION_SIZE = 45;
-    for (int y = 0; y < MAP_Y; y++) {
-      for (int x = 0; x < MAP_X; x++) {
-        if (m->cmap[y][x] != NULL && m->cmap[y][x]->symbol != PC_SYMBOL) {
-          description[index] = (char*)malloc(DESCRIPTION_SIZE * sizeof(char));
-          if (description[index] == NULL) {
+    for (int y = 0; y < MAP_Y; y++)
+    {
+      for (int x = 0; x < MAP_X; x++)
+      {
+        if (m->cmap[y][x] != NULL && m->cmap[y][x]->symbol != PC_SYMBOL)
+        {
+          description[index] = (char *)malloc(DESCRIPTION_SIZE * sizeof(char));
+          if (description[index] == NULL)
+          {
             exit(EXIT_FAILURE);
           }
           int dist_y = c->pos[dim_y] - y;
           int dist_x = c->pos[dim_x] - x;
-          const char* north_south = dist_y < 0 ? "south" : "north";
-          const char* east_west = dist_x < 0 ? "west" : "east";
+          const char *north_south = dist_y < 0 ? "south" : "north";
+          const char *east_west = dist_x < 0 ? "west" : "east";
           snprintf(description[index], DESCRIPTION_SIZE, "%02d  |  %c  %d %s, %d %s", (index), m->cmap[y][x]->symbol, abs(dist_y), north_south, abs(dist_x), east_west);
           index++;
         }
       }
     }
     description[index] = NULL;
-    for (int k = 0; k < trainer_menu_buffer; k++) {
-      for (int j = 0; j < trainer_count; j++) {
-        description[j] = description[j+1];
+    for (int k = 0; k < trainer_menu_buffer; k++)
+    {
+      for (int j = 0; j < trainer_count; j++)
+      {
+        description[j] = description[j + 1];
       }
     }
 
     display_info_menu(title, description);
     menu_open = true;
     menu_type = 'T';
-  } else if (i == 'f') {
+  }
+  else if (i == 'f')
+  {
     char *title = const_cast<char *>("Fly Mode! (Write left to right)");
     char *description[4];
-    description[0] = (char*)malloc(46 * sizeof(char));
+    description[0] = (char *)malloc(46 * sizeof(char));
     snprintf(description[0], 46, "Current World Pos: (%03d, %03d)", (world.cur_idx[dim_x] - 200), (world.cur_idx[dim_y] - 200));
-    description[1] = (char*)malloc(36 * sizeof(char));
+    description[1] = (char *)malloc(36 * sizeof(char));
     snprintf(description[1], 36, "X: %c%03d  |  Y: %c%03d", (neg_x ? '-' : ' '), fly_x, (neg_y ? '-' : ' '), fly_y);
     description[2] = const_cast<char *>("Press Enter when done.");
     description[3] = NULL;
@@ -2352,86 +2510,110 @@ int handle_menu_input(character *c, int i)
 
   bool update_menu = false;
   std::string ints = "0123456789";
-  if (menu_open) {
-  int input;
-    do {
+  if (menu_open)
+  {
+    int input;
+    do
+    {
       input = getch();
-      if (input == 'Q') return input;
-      if (input == KEY_DOWN) {
+      if (input == 'Q')
+        return input;
+      if (input == KEY_DOWN)
+      {
         update_menu = true;
         trainer_menu_buffer = trainer_menu_buffer > trainer_count - 2 ? trainer_menu_buffer : trainer_menu_buffer + 1;
         break;
-      } else if (input == KEY_UP) {
+      }
+      else if (input == KEY_UP)
+      {
         update_menu = true;
         trainer_menu_buffer = trainer_menu_buffer == 0 ? trainer_menu_buffer : trainer_menu_buffer - 1;
         break;
-      } else if (input == '-') {
-        if (fly_x_amount_set == 0) {
+      }
+      else if (input == '-')
+      {
+        if (fly_x_amount_set == 0)
+        {
           neg_x = true;
           update_menu = true;
           break;
         }
-        else if (fly_x_amount_set == 3 && fly_y_amount_set == 0) {
+        else if (fly_x_amount_set == 3 && fly_y_amount_set == 0)
+        {
           neg_y = true;
           update_menu = true;
           break;
         }
-      } else if ((int)ints.find((char)input) > -1) {
-        if (set_fly_x && !set_fly_y) { // Setting y
-          switch (fly_y_amount_set) {
-            case 0:
-              fly_y_amount_set = 1;
-              fly_y = (int)ints.find((char)input) * 100;
-              update_menu = true;
-              break;
-            case 1:
-              fly_y_amount_set = 2;
-              fly_y += (int)ints.find((char)input) * 10;
-              update_menu = true;
-              break;
-            case 2:
-              fly_y_amount_set = 3;
-              fly_y += (int)ints.find((char)input);
-              set_fly_y = true;
-              update_menu = true;
-              break;
+      }
+      else if ((int)ints.find((char)input) > -1)
+      {
+        if (set_fly_x && !set_fly_y)
+        { // Setting y
+          switch (fly_y_amount_set)
+          {
+          case 0:
+            fly_y_amount_set = 1;
+            fly_y = (int)ints.find((char)input) * 100;
+            update_menu = true;
+            break;
+          case 1:
+            fly_y_amount_set = 2;
+            fly_y += (int)ints.find((char)input) * 10;
+            update_menu = true;
+            break;
+          case 2:
+            fly_y_amount_set = 3;
+            fly_y += (int)ints.find((char)input);
+            set_fly_y = true;
+            update_menu = true;
+            break;
           }
           break;
-        } else if (!set_fly_x) { // Setting x
-          switch (fly_x_amount_set) {
-            case 0:
-              fly_x_amount_set = 1;
-              fly_x = (int)ints.find((char)input) * 100;
-              update_menu = true;
-              break;
-            case 1:
-              fly_x_amount_set = 2;
-              fly_x += (int)ints.find((char)input) * 10;
-              update_menu = true;
-              break;
-            case 2:
-              fly_x_amount_set = 3;
-              fly_x += (int)ints.find((char)input);
-              set_fly_x = true;
-              update_menu = true;
-              break;
+        }
+        else if (!set_fly_x)
+        { // Setting x
+          switch (fly_x_amount_set)
+          {
+          case 0:
+            fly_x_amount_set = 1;
+            fly_x = (int)ints.find((char)input) * 100;
+            update_menu = true;
+            break;
+          case 1:
+            fly_x_amount_set = 2;
+            fly_x += (int)ints.find((char)input) * 10;
+            update_menu = true;
+            break;
+          case 2:
+            fly_x_amount_set = 3;
+            fly_x += (int)ints.find((char)input);
+            set_fly_x = true;
+            update_menu = true;
+            break;
           }
         }
-        if (update_menu) break;
-      } else if (input == '\n') {
-        if (set_fly_x && set_fly_y && fly_x <= (WORLD_SIZE / 2) && fly_y <= (WORLD_SIZE / 2)) {
+        if (update_menu)
+          break;
+      }
+      else if (input == '\n')
+      {
+        if (set_fly_x && set_fly_y && fly_x <= (WORLD_SIZE / 2) && fly_y <= (WORLD_SIZE / 2))
+        {
           input = '\x1B';
           world.cur_idx[dim_x] = (WORLD_SIZE / 2) + (neg_x ? -1 * fly_x : fly_x);
           world.cur_idx[dim_y] = (WORLD_SIZE / 2) + (neg_y ? -1 * fly_y : fly_y);
           new_map();
-        } else if (fly_x > (WORLD_SIZE / 2) && fly_y > (WORLD_SIZE / 2)) {
+        }
+        else if (fly_x > (WORLD_SIZE / 2) || fly_y > (WORLD_SIZE / 2))
+        {
           input = '\x1B';
         }
       }
     } while ((menu_type == 'T' && input != '\x1B') || (menu_type == 'P' && input != '<') || (menu_type == 'F' && input != '\x1B'));
     print_map();
   }
-  if (update_menu) {
+  if (update_menu)
+  {
     i = handle_menu_input(c, i);
   }
   return i;
@@ -2446,14 +2628,14 @@ void game_loop()
   int input;
   do
   {
-    c = (character *) heap_remove_min(&world.cur_map->turn);
+    c = (character *)heap_remove_min(&world.cur_map->turn);
 
     if (c == &world.pc)
     {
       print_map();
-      
+
       bool moved = false;
-      while (!moved && input != 'Q') 
+      while (!moved && input != 'Q')
       {
         set_fly_x = false;
         set_fly_y = false;
@@ -2466,10 +2648,15 @@ void game_loop()
         trainer_menu_buffer = 0;
 
         input = getch();
-        if (input == 'Q') break;
+        if (input == 'Q')
+          break;
 
         int out = handle_menu_input(c, input);
-        if (out == 'Q') {input = out; break;}
+        if (out == 'Q')
+        {
+          input = out;
+          break;
+        }
         moved = handle_movement_input(c, d, input);
       }
     }
@@ -2487,8 +2674,317 @@ void game_loop()
   } while (input != 'Q' || quit);
 }
 
+int handleFileInput(std::string fileName)
+{
+  std::ifstream file;
+  std::string filePath;
+  filePath = ("./pokedex/pokedex/data/csv/" + std::string(fileName));
+  if (std::string(filePath).find(".csv") == std::string::npos)
+    filePath = filePath + ".csv";
+  file.open(filePath);
+  if (!file.is_open())
+  {
+    filePath = ("/share/cs327/pokedex/pokedex/data/csv/" + std::string(fileName));
+    if (std::string(filePath).find(".csv") == std::string::npos)
+      filePath = filePath + ".csv";
+    file.open(filePath);
+  }
+  csv_isPokemon = std::string(fileName) == "pokemon";
+  csv_isMoves = std::string(fileName) == "moves";
+  csv_isPokemonMoves = std::string(fileName) == "pokemon_moves";
+  csv_isPokemonSpecies = std::string(fileName) == "pokemon_species";
+  csv_isExperience = std::string(fileName) == "experience";
+  csv_isTypeNames = std::string(fileName) == "type_names";
+  csv_isPokemonStats = std::string(fileName) == "pokemon_stats";
+  csv_isStats = std::string(fileName) == "stats";
+  csv_isPokemonTypes = std::string(fileName) == "pokemon_types";
+  if (!file.is_open())
+  {
+    std::cerr << "Error opening file: " << fileName << std::endl;
+    return 1;
+  }
+
+  std::string line;
+  int numLines = -1;
+  while (std::getline(file, line))
+  {
+    numLines++;
+  }
+
+  if (csv_isPokemon)
+  {
+    data = new pokemon_t[numLines];
+  }
+  else if (csv_isMoves)
+  {
+    data = new moves_t[numLines];
+  }
+  else if (csv_isPokemonMoves)
+  {
+    data = new pokemon_moves_t[numLines];
+  }
+  else if (csv_isPokemonSpecies)
+  {
+    data = new pokemon_species_t[numLines];
+  }
+  else if (csv_isExperience)
+  {
+    data = new experience_t[numLines];
+  }
+  else if (csv_isTypeNames)
+  {
+    data = new type_names_t[numLines];
+  }
+  else if (csv_isPokemonStats)
+  {
+    data = new pokemon_stats_t[numLines];
+  }
+  else if (csv_isStats)
+  {
+    data = new stats_t[numLines];
+  }
+  else if (csv_isPokemonTypes)
+  {
+    data = new pokemon_types_t[numLines];
+  }
+
+  file.clear();
+  file.seekg(0, std::ios::beg);
+
+  bool firstRun = true;
+  int expectedColumns = 0;
+  int index = 0;
+  while (std::getline(file, line))
+  {
+    std::vector<std::string> tokens;
+    std::stringstream ss(line);
+    std::string token;
+
+    // Issue: misses items when empty?
+    int count = 0;
+    while (std::getline(ss, token, ','))
+    {
+      if (firstRun)
+      {
+        expectedColumns++;
+      }
+      else
+      {
+        count++;
+      }
+      if (token.empty())
+      {
+        tokens.push_back("");
+      }
+      else
+      {
+        tokens.push_back(token);
+      }
+    }
+
+    while (!firstRun && count != expectedColumns)
+    {
+      tokens.push_back("");
+      count++;
+    }
+    int tokenCount;
+    if (csv_isPokemon)
+    {
+      try
+      {
+        pokemon_t *pokemonData = static_cast<pokemon_t *>(data);
+        pokemonData[index].id = tokens[0] == "" ? INT_MAX : std::stoi(tokens[0]);
+        pokemonData[index].identifier = tokens[1];
+        pokemonData[index].species_id = tokens[2] == "" ? INT_MAX : std::stoi(tokens[2]);
+        pokemonData[index].height = tokens[3] == "" ? INT_MAX : std::stoi(tokens[3]);
+        pokemonData[index].weight = tokens[4] == "" ? INT_MAX : std::stoi(tokens[4]);
+        pokemonData[index].base_xp = tokens[5] == "" ? INT_MAX : std::stoi(tokens[5]);
+        pokemonData[index].order = tokens[6] == "" ? INT_MAX : std::stoi(tokens[6]);
+        pokemonData[index].is_default = tokens[7] == "" ? INT_MAX : std::stoi(tokens[7]);
+        tokenCount = 8;
+      }
+      catch (const std::invalid_argument &e)
+      {
+        index--;
+      }
+    }
+    else if (csv_isMoves)
+    {
+      try
+      {
+        moves_t *movesData = static_cast<moves_t *>(data);
+        movesData[index].id = tokens[0] == "" ? INT_MAX : std::stoi(tokens[0]);
+        movesData[index].identifier = (tokens[1]);
+        movesData[index].generation_id = tokens[2] == "" ? INT_MAX : std::stoi(tokens[2]);
+        movesData[index].type_id = tokens[3] == "" ? INT_MAX : std::stoi(tokens[3]);
+        movesData[index].power = tokens[4] == "" ? INT_MAX : std::stoi(tokens[4]);
+        movesData[index].accuracy = tokens[5] == "" ? INT_MAX : std::stoi(tokens[5]);
+        movesData[index].priority = tokens[6] == "" ? INT_MAX : std::stoi(tokens[6]);
+        movesData[index].target_id = tokens[7] == "" ? INT_MAX : std::stoi(tokens[7]);
+        movesData[index].damage_class_id = tokens[8] == "" ? INT_MAX : std::stoi(tokens[8]);
+        movesData[index].effect_id = tokens[9] == "" ? INT_MAX : std::stoi(tokens[9]);
+        movesData[index].effect_chance = tokens[10] == "" ? INT_MAX : std::stoi(tokens[10]);
+        movesData[index].contest_type_id = tokens[11] == "" ? INT_MAX : std::stoi(tokens[11]);
+        movesData[index].contest_effect_id = tokens[12] == "" ? INT_MAX : std::stoi(tokens[12]);
+        movesData[index].super_contest_effect_id = tokens[13] == "" ? INT_MAX : std::stoi(tokens[13]);
+        tokenCount = 14;
+      }
+      catch (const std::invalid_argument &e)
+      {
+        index--;
+      }
+    }
+    else if (csv_isPokemonMoves)
+    {
+      try
+      {
+        pokemon_moves_t *pokemonMovesData = static_cast<pokemon_moves_t *>(data);
+        pokemonMovesData[index].pokemon_id = tokens[0] == "" ? INT_MAX : std::stoi(tokens[0]);
+        pokemonMovesData[index].version_group_id = tokens[1] == "" ? INT_MAX : std::stoi(tokens[1]);
+        pokemonMovesData[index].move_id = tokens[2] == "" ? INT_MAX : std::stoi(tokens[2]);
+        pokemonMovesData[index].pokemon_move_method_id = tokens[3] == "" ? INT_MAX : std::stoi(tokens[3]);
+        pokemonMovesData[index].level = tokens[4] == "" ? INT_MAX : std::stoi(tokens[4]);
+        pokemonMovesData[index].order = tokens[5] == "" ? INT_MAX : std::stoi(tokens[5]);
+        tokenCount = 6;
+      }
+      catch (const std::invalid_argument &e)
+      {
+        index--;
+      }
+    }
+    else if (csv_isPokemonSpecies)
+    {
+      try
+      {
+        pokemon_species_t *pokemonSpeciesData = static_cast<pokemon_species_t *>(data);
+        pokemonSpeciesData[index].id = tokens[0] == "" ? INT_MAX : std::stoi(tokens[0]);
+        pokemonSpeciesData[index].identifier = (tokens[1]);
+        pokemonSpeciesData[index].generation_id = tokens[2] == "" ? INT_MAX : std::stoi(tokens[2]);
+        pokemonSpeciesData[index].evolves_from_species_id = tokens[3] == "" ? INT_MAX : std::stoi(tokens[3]);
+        pokemonSpeciesData[index].evolution_chain_id = tokens[4] == "" ? INT_MAX : std::stoi(tokens[4]);
+        pokemonSpeciesData[index].color_id = tokens[5] == "" ? INT_MAX : std::stoi(tokens[5]);
+        pokemonSpeciesData[index].shape_id = tokens[6] == "" ? INT_MAX : std::stoi(tokens[6]);
+        pokemonSpeciesData[index].habitat_id = tokens[7] == "" ? INT_MAX : std::stoi(tokens[7]);
+        pokemonSpeciesData[index].gender_rate = tokens[8] == "" ? INT_MAX : std::stoi(tokens[8]);
+        pokemonSpeciesData[index].capture_rate = tokens[9] == "" ? INT_MAX : std::stoi(tokens[9]);
+        pokemonSpeciesData[index].base_happiness = tokens[10] == "" ? INT_MAX : std::stoi(tokens[10]);
+        pokemonSpeciesData[index].is_baby = tokens[11] == "" ? INT_MAX : std::stoi(tokens[11]);
+        pokemonSpeciesData[index].hatch_counter = tokens[12] == "" ? INT_MAX : std::stoi(tokens[12]);
+        pokemonSpeciesData[index].has_gender_differences = tokens[13] == "" ? INT_MAX : std::stoi(tokens[13]);
+        pokemonSpeciesData[index].growth_rate_id = tokens[14] == "" ? INT_MAX : std::stoi(tokens[14]);
+        pokemonSpeciesData[index].forms_switchable = tokens[15] == "" ? INT_MAX : std::stoi(tokens[15]);
+        pokemonSpeciesData[index].is_legendary = tokens[16] == "" ? INT_MAX : std::stoi(tokens[16]);
+        pokemonSpeciesData[index].is_mythical = tokens[17] == "" ? INT_MAX : std::stoi(tokens[17]);
+        pokemonSpeciesData[index].order = tokens[18] == "" ? INT_MAX : std::stoi(tokens[18]);
+        pokemonSpeciesData[index].conquest_order = tokens[19] == "" ? INT_MAX : std::stoi(tokens[19]);
+        tokenCount = 20;
+      }
+      catch (const std::invalid_argument &e)
+      {
+        index--;
+      }
+    }
+    else if (csv_isExperience)
+    {
+      try
+      {
+        experience_t *experienceData = static_cast<experience_t *>(data);
+        experienceData[index].growth_rate_id = tokens[0] == "" ? INT_MAX : std::stoi(tokens[0]);
+        experienceData[index].level = tokens[1] == "" ? INT_MAX : std::stoi(tokens[1]);
+        experienceData[index].experience = tokens[2] == "" ? INT_MAX : std::stoi(tokens[2]);
+        tokenCount = 3;
+      }
+      catch (const std::invalid_argument &e)
+      {
+        index--;
+      }
+    }
+    else if (csv_isTypeNames)
+    {
+      try
+      {
+        type_names_t *typeNamesData = static_cast<type_names_t *>(data);
+        typeNamesData[index].type_id = tokens[0] == "" ? INT_MAX : std::stoi(tokens[0]);
+        typeNamesData[index].local_language_id = tokens[1] == "" ? INT_MAX : std::stoi(tokens[1]);
+        typeNamesData[index].name = (tokens[2]);
+        tokenCount = 3;
+      }
+      catch (const std::invalid_argument &e)
+      {
+        index--;
+      }
+    }
+    else if (csv_isPokemonStats)
+    {
+      try
+      {
+        pokemon_stats_t *pokemonStatsData = static_cast<pokemon_stats_t *>(data);
+        pokemonStatsData[index].pokemon_id = tokens[0] == "" ? INT_MAX : std::stoi(tokens[0]);
+        pokemonStatsData[index].stat_id = tokens[1] == "" ? INT_MAX : std::stoi(tokens[1]);
+        pokemonStatsData[index].base_stat = tokens[2] == "" ? INT_MAX : std::stoi(tokens[2]);
+        pokemonStatsData[index].effort = tokens[3] == "" ? INT_MAX : std::stoi(tokens[3]);
+        tokenCount = 4;
+      }
+      catch (const std::invalid_argument &e)
+      {
+        index--;
+      }
+    }
+    else if (csv_isStats)
+    {
+      try
+      {
+        stats_s *statsData = static_cast<stats_s *>(data);
+        statsData[index].id = tokens[0] == "" ? INT_MAX : std::stoi(tokens[0]);
+        statsData[index].damage_class_id = tokens[1] == "" ? INT_MAX : std::stoi(tokens[1]);
+        statsData[index].identifier = (tokens[2]);
+        statsData[index].is_battle_only = tokens[3] == "" ? INT_MAX : std::stoi(tokens[3]);
+        statsData[index].game_index = tokens[4] == "" ? INT_MAX : std::stoi(tokens[4]);
+        tokenCount = 5;
+      }
+      catch (const std::invalid_argument &e)
+      {
+        index--;
+      }
+    }
+    else if (csv_isPokemonTypes)
+    {
+      try
+      {
+        pokemon_types_s *pokemonTypesData = static_cast<pokemon_types_s *>(data);
+        pokemonTypesData[index].pokemon_id = tokens[0] == "" ? INT_MAX : std::stoi(tokens[0]);
+        pokemonTypesData[index].type_id = tokens[1] == "" ? INT_MAX : std::stoi(tokens[1]);
+        pokemonTypesData[index].slot = tokens[2] == "" ? INT_MAX : std::stoi(tokens[2]);
+        tokenCount = 3;
+      }
+      catch (const std::invalid_argument &e)
+      {
+        index--;
+      }
+    }
+
+    for (int j = 0; j < tokenCount; j++) {
+      std::cout << tokens[j];
+      if (j < tokenCount - 1) std::cout << std::string(", ");
+    }
+    std::cout << std::endl;
+
+    firstRun = false;
+    index++;
+  }
+  file.close();
+
+  return 1;
+}
+
 int main(int argc, char *argv[])
 {
+  if (argc == 2)
+  {
+    if (handleFileInput(argv[1]) == 1)
+      return 0;
+  }
+
   initscr();
   cbreak();
   noecho();
